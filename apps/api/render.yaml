@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: global-market-intelligence-api
+    runtime: python
+    rootDir: apps/api
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: APP_ENV
+        value: production
+  - type: cron
+    name: global-market-intelligence-ingest
+    runtime: python
+    rootDir: apps/api
+    schedule: "*/15 * * * *"
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m app.jobs.ingest_news
+
