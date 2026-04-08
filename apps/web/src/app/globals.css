@@ -5,16 +5,20 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: light;
+  color-scheme: dark;
+}
+
+html {
+  background: #04070d;
 }
 
 body {
   min-height: 100vh;
   background:
-    radial-gradient(circle at top left, rgba(0, 166, 166, 0.2), transparent 28%),
-    radial-gradient(circle at 85% 20%, rgba(246, 193, 119, 0.25), transparent 24%),
-    linear-gradient(180deg, #f5f8fb 0%, #e8f1f2 100%);
-  color: #082032;
+    radial-gradient(circle at top left, rgba(163, 230, 53, 0.1), transparent 18%),
+    radial-gradient(circle at top right, rgba(34, 211, 238, 0.08), transparent 18%),
+    linear-gradient(180deg, #05070c 0%, #04070d 100%);
+  color: #f8fafc;
 }
 
 a {
@@ -23,4 +27,25 @@ a {
 
 * {
   box-sizing: border-box;
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: translate(-50%, -50%) scale(0.8);
+    opacity: 0.15;
+  }
+
+  70% {
+    transform: translate(-50%, -50%) scale(1.4);
+    opacity: 0;
+  }
+
+  100% {
+    transform: translate(-50%, -50%) scale(1.4);
+    opacity: 0;
+  }
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 2.8s ease-out infinite;
 }

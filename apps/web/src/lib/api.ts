@@ -1,84 +1,75 @@
 import {
+  mockArticles,
   mockHeatmapNodes,
   mockRegionDetails,
   mockRegionSentiment,
-  type HeatmapNode,
-  type RegionDetail,
-  type RegionSentimentPoint,
 } from "@/lib/mock-data";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
-
-async function getJson<T>(path: string, fallback: T): Promise<T> {
-  try {
-    const response = await fetch(`${API_BASE_URL}${path}`, {
-      next: { revalidate: 60 },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Request failed: ${response.status}`);
-    }
-
-    return (await response.json()) as T;
-  } catch {
-    return fallback;
-  }
-}
-
-export async function fetchRegionSentiment(): Promise<RegionSentimentPoint[]> {
-  return getJson("/regions/sentiment", mockRegionSentiment);
-}
-
-export async function fetchRegionDetail(region: string): Promise<RegionDetail> {
-  return getJson(
-    `/regions/${region}`,
-    mockRegionDetails[region] ?? mockRegionDetails["north-america"],
-  );
-}
-
-export async function fetchHeatmap(): Promise<{ as_of: string; nodes: HeatmapNode[] }> {
-  return getJson("/heatmap", {
-    as_of: new Date().toISOString(),
-    nodes: mockHeatmapNodes,
+function sleep(ms: number) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
   });
 }
 
+export async function fetchRegionSentiment() {
+  await sleep(120);
+  return mockRegionSentiment;
+}
+
+export async function fetchRegionDetail(region: string) {
+  await sleep(120);
+  return mockRegionDetails[region] ?? mockRegionDetails["north-america"];
+}
+
+export async function fetchHeatmap() {
+  await sleep(120);
+  return {
+    as_of: new Date().toISOString(),
+    nodes: mockHeatmapNodes,
+  };
+}
+
 export async function fetchArticles(region?: string) {
-  const search = region ? `?region=${region}` : "";
-  return getJson("/articles" + search, []);
+  await sleep(120);
+
+  if (!region) {
+    return mockArticles;
+  }
+
+  return mockArticles.filter((article) => article.region_code === region);
 }
 
 export async function postChat(message: string, region?: string) {
-  try {
-    const response = await fetch(`${API_BASE_URL}/chat`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
+  await sleep(220);
+  const focus = region ?? "north-america";
+  const regionDetail = mockRegionDetails[focus] ?? mockRegionDetails["north-america"];
+
+  return {
+    answer:
+      `${regionDetail.region_name} is currently leaning ` +
+      `${regionDetail.sentiment_score >= 0.1 ? "constructive" : regionDetail.sentiment_score <= -0.05 ? "cautious" : "mixed"}. ` +
+      `The main watch item is ${regionDetail.top_topics[0]}. ` +
+      `For a beginner investor, use this as context, not as a buy or sell signal. ` +
+      `Your prompt was: "${message}"`,
+    mode: "mock",
+    region_focus: focus,
+    cards: [
+      {
+        title: "Region",
+        value: regionDetail.region_name,
+        detail: regionDetail.summary,
       },
-      body: JSON.stringify({ message, region }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Request failed: ${response.status}`);
-    }
-
-    return response.json();
-  } catch {
-    return {
-      answer:
-        "Backend is not reachable yet, so this is a mock assistant reply. The MVP should summarize region sentiment, fear, and top watch items.",
-      mode: "mock",
-      region_focus: region ?? "north-america",
-      cards: [
-        {
-          title: "Mode",
-          value: "Mock",
-          detail: "Backend is offline or environment variables are missing.",
-        },
-      ],
-      used_tools: [],
-    };
-  }
+      {
+        title: "Sentiment",
+        value: regionDetail.sentiment_score.toFixed(2),
+        detail: "Weighted daily article tone.",
+      },
+      {
+        title: "Fear Score",
+        value: regionDetail.fear_score.toString(),
+        detail: "Higher means more risk-off headlines.",
+      },
+    ],
+    used_tools: [],
+  };
 }
-
