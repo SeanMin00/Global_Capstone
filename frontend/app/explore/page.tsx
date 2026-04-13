@@ -9,8 +9,8 @@ type RegionArticle = {
   sentiment: number;
 };
 
-type BaseRegion = "US" | "EU" | "ASIA";
-type RegionCode = BaseRegion | "KR" | "CN" | "JP" | "TW" | "DE" | "UK" | "FR";
+type BaseRegion = "NA" | "EU" | "ASIA";
+type RegionCode = BaseRegion | "US" | "CA" | "KR" | "CN" | "JP" | "TW" | "HK" | "SG" | "IN" | "DE" | "UK" | "FR";
 
 type RegionSummary = {
   region: RegionCode;
@@ -46,7 +46,7 @@ type MarketRiskSnapshot = {
   short_explanation: string;
 };
 
-type ViewMode = "map" | "chart";
+type ViewMode = "map" | "chart" | "pf" | "personal";
 
 type HeatmapStock = {
   ticker: string;
@@ -59,47 +59,80 @@ type HeatmapStock = {
   size: "lg" | "md" | "sm";
 };
 
-const BASE_REGIONS: BaseRegion[] = ["US", "EU", "ASIA"];
-const ASIA_DETAIL_REGIONS: RegionCode[] = ["KR", "CN", "JP", "TW"];
+const BASE_REGIONS: BaseRegion[] = ["NA", "EU", "ASIA"];
+const NA_DETAIL_REGIONS: RegionCode[] = ["US", "CA"];
+const ASIA_DETAIL_REGIONS: RegionCode[] = ["KR", "CN", "JP", "TW", "HK", "SG", "IN"];
 const EU_DETAIL_REGIONS: RegionCode[] = ["DE", "UK", "FR"];
-const DETAIL_REGIONS: Record<"ASIA" | "EU", RegionCode[]> = {
+const DETAIL_REGIONS: Record<BaseRegion, RegionCode[]> = {
+  NA: NA_DETAIL_REGIONS,
   ASIA: ASIA_DETAIL_REGIONS,
   EU: EU_DETAIL_REGIONS,
 };
-const MARKET_RISK_COUNTRIES = new Set<RegionCode>(["US", "KR", "JP", "CN", "TW", "DE", "UK", "FR"]);
+const ALL_DETAIL_REGIONS = [...NA_DETAIL_REGIONS, ...ASIA_DETAIL_REGIONS, ...EU_DETAIL_REGIONS];
+const MARKET_RISK_COUNTRIES = new Set<RegionCode>([
+  "US",
+  "CA",
+  "KR",
+  "JP",
+  "CN",
+  "TW",
+  "HK",
+  "SG",
+  "IN",
+  "DE",
+  "UK",
+  "FR",
+]);
 
 const regionLabels: Record<RegionCode, string> = {
+  NA: "🌎 NA",
   US: "🇺🇸 US",
   EU: "🇪🇺 EU",
   ASIA: "🌏 ASIA",
+  CA: "🇨🇦 CA",
   KR: "🇰🇷 KR",
   CN: "🇨🇳 CN",
   JP: "🇯🇵 JP",
   TW: "🇹🇼 TW",
+  HK: "🇭🇰 HK",
+  SG: "🇸🇬 SG",
+  IN: "🇮🇳 IN",
   DE: "🇩🇪 DE",
   UK: "🇬🇧 UK",
   FR: "🇫🇷 FR",
 };
 
 const regionPositions: Record<RegionCode, { top: string; left: string }> = {
-  US: { top: "42%", left: "24%" },
+  NA: { top: "40%", left: "24%" },
+  US: { top: "46%", left: "28%" },
   EU: { top: "33%", left: "53%" },
   ASIA: { top: "45%", left: "77%" },
+  CA: { top: "31%", left: "22%" },
   KR: { top: "39%", left: "83%" },
   CN: { top: "44%", left: "75%" },
   JP: { top: "34%", left: "87%" },
   TW: { top: "41.5%", left: "79.5%" },
+  HK: { top: "46.5%", left: "80.5%" },
+  SG: { top: "58%", left: "78.5%" },
+  IN: { top: "56%", left: "67%" },
   DE: { top: "33%", left: "56%" },
   UK: { top: "29%", left: "50%" },
   FR: { top: "38%", left: "52.5%" },
 };
 
-const focusedRegionPositions: Record<"ASIA" | "EU", Partial<Record<RegionCode, { top: string; left: string }>>> = {
+const focusedRegionPositions: Record<BaseRegion, Partial<Record<RegionCode, { top: string; left: string }>>> = {
+  NA: {
+    US: { top: "50%", left: "58%" },
+    CA: { top: "30%", left: "38%" },
+  },
   ASIA: {
-    KR: { top: "36%", left: "29%" },
-    CN: { top: "56%", left: "48%" },
-    JP: { top: "28%", left: "69%" },
-    TW: { top: "48%", left: "76%" },
+    KR: { top: "34%", left: "30%" },
+    CN: { top: "54%", left: "45%" },
+    JP: { top: "24%", left: "66%" },
+    TW: { top: "42%", left: "75%" },
+    HK: { top: "56%", left: "63%" },
+    SG: { top: "67%", left: "57%" },
+    IN: { top: "63%", left: "24%" },
   },
   EU: {
     UK: { top: "30%", left: "28%" },
@@ -109,11 +142,13 @@ const focusedRegionPositions: Record<"ASIA" | "EU", Partial<Record<RegionCode, {
 };
 
 const heatmapStocks: HeatmapStock[] = [
-  { ticker: "AAPL", name: "Apple", sector: "Technology", region: "US", change: 1.42, marketCap: 2950, size: "lg" },
-  { ticker: "MSFT", name: "Microsoft", sector: "Technology", region: "US", change: 2.14, marketCap: 3150, size: "lg" },
-  { ticker: "NVDA", name: "NVIDIA", sector: "Technology", region: "US", change: 3.28, marketCap: 2650, size: "lg" },
-  { ticker: "JPM", name: "JPMorgan", sector: "Financial", region: "US", change: -0.74, marketCap: 620, size: "md" },
-  { ticker: "XOM", name: "Exxon", sector: "Energy", region: "US", change: -1.81, marketCap: 510, size: "md" },
+  { ticker: "AAPL", name: "Apple", sector: "Technology", region: "NA", detailRegion: "US", change: 1.42, marketCap: 2950, size: "lg" },
+  { ticker: "MSFT", name: "Microsoft", sector: "Technology", region: "NA", detailRegion: "US", change: 2.14, marketCap: 3150, size: "lg" },
+  { ticker: "NVDA", name: "NVIDIA", sector: "Technology", region: "NA", detailRegion: "US", change: 3.28, marketCap: 2650, size: "lg" },
+  { ticker: "JPM", name: "JPMorgan", sector: "Financial", region: "NA", detailRegion: "US", change: -0.74, marketCap: 620, size: "md" },
+  { ticker: "RY", name: "Royal Bank of Canada", sector: "Financial", region: "NA", detailRegion: "CA", change: 0.54, marketCap: 155, size: "md" },
+  { ticker: "SHOP", name: "Shopify", sector: "Technology", region: "NA", detailRegion: "CA", change: 1.92, marketCap: 110, size: "md" },
+  { ticker: "XOM", name: "Exxon", sector: "Energy", region: "NA", detailRegion: "US", change: -1.81, marketCap: 510, size: "md" },
   { ticker: "SAP", name: "SAP", sector: "Technology", region: "EU", detailRegion: "DE", change: 1.26, marketCap: 250, size: "lg" },
   { ticker: "ASML", name: "ASML", sector: "Technology", region: "EU", change: 2.02, marketCap: 390, size: "lg" },
   { ticker: "SIE", name: "Siemens", sector: "Industrials", region: "EU", detailRegion: "DE", change: -0.62, marketCap: 150, size: "md" },
@@ -123,21 +158,27 @@ const heatmapStocks: HeatmapStock[] = [
   { ticker: "SONY", name: "Sony", sector: "Consumer Cyclical", region: "ASIA", detailRegion: "JP", change: 0.93, marketCap: 150, size: "md" },
   { ticker: "BABA", name: "Alibaba", sector: "Consumer Cyclical", region: "ASIA", detailRegion: "CN", change: -2.17, marketCap: 210, size: "lg" },
   { ticker: "005930", name: "Samsung", sector: "Technology", region: "ASIA", detailRegion: "KR", change: 1.73, marketCap: 420, size: "lg" },
+  { ticker: "0700", name: "Tencent", sector: "Communication Services", region: "ASIA", detailRegion: "HK", change: 1.04, marketCap: 470, size: "lg" },
+  { ticker: "1299", name: "AIA", sector: "Financial", region: "ASIA", detailRegion: "HK", change: 0.61, marketCap: 140, size: "md" },
+  { ticker: "D05", name: "DBS", sector: "Financial", region: "ASIA", detailRegion: "SG", change: 0.37, marketCap: 95, size: "md" },
+  { ticker: "U11", name: "UOB", sector: "Financial", region: "ASIA", detailRegion: "SG", change: 0.22, marketCap: 48, size: "sm" },
+  { ticker: "INFY", name: "Infosys", sector: "Technology", region: "ASIA", detailRegion: "IN", change: 1.13, marketCap: 78, size: "md" },
+  { ticker: "HDBK", name: "HDFC Bank", sector: "Financial", region: "ASIA", detailRegion: "IN", change: 0.46, marketCap: 145, size: "md" },
   { ticker: "HDB", name: "HDFC Bank", sector: "Financial", region: "ASIA", change: -0.38, marketCap: 145, size: "sm" },
-  { ticker: "GOOG", name: "Alphabet", sector: "Communication Services", region: "US", change: 1.12, marketCap: 2150, size: "lg" },
-  { ticker: "META", name: "Meta", sector: "Communication Services", region: "US", change: -0.61, marketCap: 1320, size: "md" },
-  { ticker: "AMZN", name: "Amazon", sector: "Consumer Cyclical", region: "US", change: 1.58, marketCap: 1960, size: "lg" },
-  { ticker: "TSLA", name: "Tesla", sector: "Consumer Cyclical", region: "US", change: -2.44, marketCap: 610, size: "md" },
-  { ticker: "WMT", name: "Walmart", sector: "Consumer Defensive", region: "US", change: 0.44, marketCap: 540, size: "md" },
-  { ticker: "KO", name: "Coca-Cola", sector: "Consumer Defensive", region: "US", change: 0.31, marketCap: 290, size: "sm" },
-  { ticker: "LLY", name: "Eli Lilly", sector: "Healthcare", region: "US", change: 2.37, marketCap: 770, size: "lg" },
-  { ticker: "JNJ", name: "Johnson & Johnson", sector: "Healthcare", region: "US", change: -0.29, marketCap: 380, size: "md" },
-  { ticker: "CAT", name: "Caterpillar", sector: "Industrials", region: "US", change: 0.72, marketCap: 165, size: "md" },
-  { ticker: "BA", name: "Boeing", sector: "Industrials", region: "US", change: -1.46, marketCap: 120, size: "md" },
-  { ticker: "PLD", name: "Prologis", sector: "Real Estate", region: "US", change: 0.17, marketCap: 110, size: "sm" },
-  { ticker: "AMT", name: "American Tower", sector: "Real Estate", region: "US", change: -0.41, marketCap: 95, size: "sm" },
-  { ticker: "NEE", name: "NextEra", sector: "Utilities", region: "US", change: 0.23, marketCap: 145, size: "sm" },
-  { ticker: "DUK", name: "Duke Energy", sector: "Utilities", region: "US", change: -0.18, marketCap: 85, size: "sm" },
+  { ticker: "GOOG", name: "Alphabet", sector: "Communication Services", region: "NA", detailRegion: "US", change: 1.12, marketCap: 2150, size: "lg" },
+  { ticker: "META", name: "Meta", sector: "Communication Services", region: "NA", detailRegion: "US", change: -0.61, marketCap: 1320, size: "md" },
+  { ticker: "AMZN", name: "Amazon", sector: "Consumer Cyclical", region: "NA", detailRegion: "US", change: 1.58, marketCap: 1960, size: "lg" },
+  { ticker: "TSLA", name: "Tesla", sector: "Consumer Cyclical", region: "NA", detailRegion: "US", change: -2.44, marketCap: 610, size: "md" },
+  { ticker: "WMT", name: "Walmart", sector: "Consumer Defensive", region: "NA", detailRegion: "US", change: 0.44, marketCap: 540, size: "md" },
+  { ticker: "KO", name: "Coca-Cola", sector: "Consumer Defensive", region: "NA", detailRegion: "US", change: 0.31, marketCap: 290, size: "sm" },
+  { ticker: "LLY", name: "Eli Lilly", sector: "Healthcare", region: "NA", detailRegion: "US", change: 2.37, marketCap: 770, size: "lg" },
+  { ticker: "JNJ", name: "Johnson & Johnson", sector: "Healthcare", region: "NA", detailRegion: "US", change: -0.29, marketCap: 380, size: "md" },
+  { ticker: "CAT", name: "Caterpillar", sector: "Industrials", region: "NA", detailRegion: "US", change: 0.72, marketCap: 165, size: "md" },
+  { ticker: "BA", name: "Boeing", sector: "Industrials", region: "NA", detailRegion: "US", change: -1.46, marketCap: 120, size: "md" },
+  { ticker: "PLD", name: "Prologis", sector: "Real Estate", region: "NA", detailRegion: "US", change: 0.17, marketCap: 110, size: "sm" },
+  { ticker: "AMT", name: "American Tower", sector: "Real Estate", region: "NA", detailRegion: "US", change: -0.41, marketCap: 95, size: "sm" },
+  { ticker: "NEE", name: "NextEra", sector: "Utilities", region: "NA", detailRegion: "US", change: 0.23, marketCap: 145, size: "sm" },
+  { ticker: "DUK", name: "Duke Energy", sector: "Utilities", region: "NA", detailRegion: "US", change: -0.18, marketCap: 85, size: "sm" },
   { ticker: "LIN", name: "Linde", sector: "Basic Materials", region: "EU", detailRegion: "DE", change: 0.96, marketCap: 210, size: "md" },
   { ticker: "RIO", name: "Rio Tinto", sector: "Basic Materials", region: "EU", detailRegion: "UK", change: -1.09, marketCap: 115, size: "md" },
   { ticker: "BNP", name: "BNP Paribas", sector: "Financial", region: "EU", detailRegion: "FR", change: -0.34, marketCap: 90, size: "md" },
@@ -178,7 +219,7 @@ const sectorOrder = [
 ];
 
 function getRegionMarketCap(region: RegionCode) {
-  if (ASIA_DETAIL_REGIONS.includes(region) || EU_DETAIL_REGIONS.includes(region)) {
+  if (ALL_DETAIL_REGIONS.includes(region)) {
     return heatmapStocks
       .filter((stock) => stock.detailRegion === region)
       .reduce((sum, stock) => sum + stock.marketCap, 0);
@@ -196,10 +237,15 @@ function isEuFamily(region: RegionCode) {
   return region === "EU" || EU_DETAIL_REGIONS.includes(region);
 }
 
+function isUsFamily(region: RegionCode) {
+  return region === "NA" || NA_DETAIL_REGIONS.includes(region);
+}
+
 function getParentRegion(region: RegionCode): BaseRegion {
+  if (isUsFamily(region)) return "NA";
   if (isAsiaFamily(region)) return "ASIA";
   if (isEuFamily(region)) return "EU";
-  return "US";
+  return "NA";
 }
 
 function sentimentLabel(score: number) {
@@ -248,6 +294,48 @@ function formatPercent(value: number | null) {
   return `${(value * 100).toFixed(2)}%`;
 }
 
+function viewModeLabel(viewMode: ViewMode) {
+  if (viewMode === "map") return "Map + News Panel";
+  if (viewMode === "chart") return "Stock Heatmap";
+  if (viewMode === "pf") return "PF Workspace";
+  return "Personal Page";
+}
+
+function viewModeCopy(viewMode: ViewMode) {
+  if (viewMode === "map") {
+    return "Click a region on the map. The right panel updates with related headlines, and sentiment changes the marker color.";
+  }
+  if (viewMode === "chart") {
+    return "Switch to chart mode for a Finviz-style stock heatmap. It is frontend-only for now and grouped by the selected region.";
+  }
+  if (viewMode === "pf") {
+    return "Portfolio workspace placeholder. We can connect holdings, watchlists, and personal risk tools here next.";
+  }
+  return "Start with a lightweight profile onboarding flow, then move into investor preferences and personalization.";
+}
+
+function humanizeProfileValue(value: string) {
+  return value.replaceAll("_", " ");
+}
+
+function riskPostureLabel(score: number) {
+  if (score >= 70) return "Low risk tolerance";
+  if (score >= 40) return "Balanced";
+  return "High risk tolerance";
+}
+
+function lossToleranceLabel(value: number) {
+  if (value >= 30) return "Can absorb larger drawdowns";
+  if (value >= 15) return "Moderate drawdown tolerance";
+  return "Prefers shallow losses";
+}
+
+function riskAversionLabel(score: number) {
+  if (score >= 70) return "Defensive";
+  if (score >= 40) return "Balanced";
+  return "Growth-oriented";
+}
+
 function scaleBubbleSize(value: number, minValue: number, maxValue: number, minSize: number, maxSize: number) {
   if (value <= 0) {
     return minSize;
@@ -265,19 +353,41 @@ function scaleBubbleSize(value: number, minValue: number, maxValue: number, minS
 export default function ExplorePage() {
   const [regions, setRegions] = useState<RegionSummary[]>([]);
   const [selectedRegion, setSelectedRegion] = useState<RegionCode>("EU");
-  const [mapFocusRegion, setMapFocusRegion] = useState<"ASIA" | "EU" | null>(null);
+  const [mapFocusRegion, setMapFocusRegion] = useState<BaseRegion | null>(null);
   const [selectedTicker, setSelectedTicker] = useState("ASML");
   const [selectedSector, setSelectedSector] = useState("Technology");
   const [viewMode, setViewMode] = useState<ViewMode>("map");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [marketRisk, setMarketRisk] = useState<MarketRiskSnapshot | null>(null);
   const [marketRiskLoading, setMarketRiskLoading] = useState(false);
+  const [marketRiskError, setMarketRiskError] = useState("");
+  const [regionsLoaded, setRegionsLoaded] = useState(false);
+  const [profileStep, setProfileStep] = useState<"login" | "preferences">("login");
+  const [profileForm, setProfileForm] = useState({
+    name: "",
+    email: "",
+  });
+  const [profilePreferences, setProfilePreferences] = useState({
+    investmentGoal: "long_term_growth",
+    investmentHorizon: "5_10_years",
+    riskAversion: 55,
+    occupation: "student",
+    monthlyCashFlowStability: "moderate",
+    lossTolerance: 20,
+  });
+
+  const needsMarketData = viewMode === "map" || viewMode === "chart";
 
   useEffect(() => {
+    if (!needsMarketData || regionsLoaded) {
+      return;
+    }
+
     async function loadRegions() {
       try {
         setLoading(true);
+        setError("");
         const response = await fetch("http://localhost:8000/regions/sentiment");
         if (!response.ok) {
           throw new Error(`Request failed with ${response.status}`);
@@ -294,6 +404,7 @@ export default function ExplorePage() {
         if (topMarketRegion?.region) {
           setSelectedRegion(topMarketRegion.region);
         }
+        setRegionsLoaded(true);
       } catch (err) {
         const message = err instanceof Error ? err.message : "Unknown error";
         setError(message);
@@ -303,14 +414,14 @@ export default function ExplorePage() {
     }
 
     loadRegions();
-  }, []);
+  }, [needsMarketData, regionsLoaded]);
 
   useEffect(() => {
     if (viewMode !== "chart") {
       return;
     }
 
-    if (selectedRegion !== "US" && selectedRegion !== "EU" && selectedRegion !== "ASIA") {
+    if (selectedRegion !== "NA" && selectedRegion !== "EU" && selectedRegion !== "ASIA") {
       setSelectedRegion(getParentRegion(selectedRegion));
     }
   }, [selectedRegion, viewMode]);
@@ -328,6 +439,11 @@ export default function ExplorePage() {
 
     if (EU_DETAIL_REGIONS.includes(selectedRegion)) {
       setMapFocusRegion("EU");
+      return;
+    }
+
+    if (NA_DETAIL_REGIONS.includes(selectedRegion)) {
+      setMapFocusRegion("NA");
       return;
     }
   }, [selectedRegion, viewMode]);
@@ -351,14 +467,18 @@ export default function ExplorePage() {
     async function loadMarketRisk() {
       if (!MARKET_RISK_COUNTRIES.has(selectedRegion)) {
         setMarketRisk(null);
+        setMarketRiskError("");
         return;
       }
 
       try {
         setMarketRiskLoading(true);
+        setMarketRiskError("");
         const response = await fetch(`http://localhost:8000/api/market-risk/${selectedRegion}`);
         if (!response.ok) {
+          const payload = (await response.json().catch(() => null)) as { detail?: string } | null;
           setMarketRisk(null);
+          setMarketRiskError(payload?.detail ?? `Market risk is not available for ${selectedRegion} yet.`);
           return;
         }
 
@@ -366,6 +486,7 @@ export default function ExplorePage() {
         setMarketRisk(payload);
       } catch {
         setMarketRisk(null);
+        setMarketRiskError(`Market risk is not available for ${selectedRegion} right now.`);
       } finally {
         setMarketRiskLoading(false);
       }
@@ -404,6 +525,9 @@ export default function ExplorePage() {
 
   const detailRegionsByGroup = useMemo(
     () => ({
+      NA: DETAIL_REGIONS.NA.map((code) => mapRegionLookup.get(code))
+        .filter((region): region is RegionSummary => Boolean(region))
+        .sort((a, b) => getRegionMarketCap(b.region) - getRegionMarketCap(a.region)),
       ASIA: DETAIL_REGIONS.ASIA.map((code) => mapRegionLookup.get(code))
         .filter((region): region is RegionSummary => Boolean(region))
         .sort((a, b) => getRegionMarketCap(b.region) - getRegionMarketCap(a.region)),
@@ -493,7 +617,7 @@ export default function ExplorePage() {
     return regionPositions[region];
   }
 
-  function enterMapGroup(group: "ASIA" | "EU") {
+  function enterMapGroup(group: BaseRegion) {
     const defaultRegion = detailRegionsByGroup[group][0]?.region ?? group;
     setMapFocusRegion(group);
     setSelectedRegion(defaultRegion);
@@ -512,8 +636,14 @@ export default function ExplorePage() {
       return;
     }
 
-    if (region === "ASIA" || region === "EU") {
+    if (region === "ASIA" || region === "EU" || region === "NA") {
       enterMapGroup(region);
+      return;
+    }
+
+    if (isUsFamily(region)) {
+      setMapFocusRegion("NA");
+      setSelectedRegion(region);
       return;
     }
 
@@ -532,6 +662,8 @@ export default function ExplorePage() {
     setMapFocusRegion(null);
     setSelectedRegion(region);
   }
+
+  const canContinueProfile = profileForm.name.trim().length > 0 || profileForm.email.trim().length > 0;
 
   return (
     <main className="explore-page">
@@ -552,6 +684,20 @@ export default function ExplorePage() {
             >
               Chart
             </button>
+            <button
+              type="button"
+              className={`rail-button ${viewMode === "pf" ? "active" : ""}`}
+              onClick={() => setViewMode("pf")}
+            >
+              PF
+            </button>
+            <button
+              type="button"
+              className={`rail-button ${viewMode === "personal" ? "active" : ""}`}
+              onClick={() => setViewMode("personal")}
+            >
+              Profile
+            </button>
           </div>
         </aside>
 
@@ -560,15 +706,9 @@ export default function ExplorePage() {
             <div>
               <p className="eyebrow">Minimal working MVP</p>
               <h1>Global News Pulse</h1>
-              <p className="hero-copy">
-                {viewMode === "map"
-                  ? "Click a region on the map. The right panel updates with related headlines, and sentiment changes the marker color."
-                  : "Switch to chart mode for a Finviz-style stock heatmap. It is frontend-only for now and grouped by the selected region."}
-              </p>
+              <p className="hero-copy">{viewModeCopy(viewMode)}</p>
             </div>
-            <div className="hero-badge">
-              {viewMode === "map" ? "Map + News Panel" : "Stock Heatmap"}
-            </div>
+            <div className="hero-badge">{viewModeLabel(viewMode)}</div>
           </header>
 
           {loading ? <div className="state-card">Loading live news from GDELT...</div> : null}
@@ -576,45 +716,47 @@ export default function ExplorePage() {
 
           {!loading && regions.length > 0 ? (
             <>
-              <div className="region-tabs">
-                {viewMode === "chart"
-                  ? sortedRegions.map((region) => (
-                      <button
-                        key={region.region}
-                        type="button"
-                        className={`region-tab ${region.region === selectedRegion ? "active" : ""}`}
-                        onClick={() => setSelectedRegion(region.region)}
-                        style={{
-                          borderColor:
-                            region.region === selectedRegion ? region.color : "rgba(255,255,255,0.08)",
-                        }}
-                      >
-                        <span>{regionLabels[region.region]}</span>
-                        <strong>{Math.round(getRegionMarketCap(region.region))}B mcap</strong>
-                      </button>
-                    ))
-                  : articleSortedRegions.map((region) => (
-                      <button
-                        key={region.region}
-                        type="button"
-                        className={`region-tab ${
-                          (mapFocusRegion ? mapFocusRegion === region.region : selectedRegion === region.region)
-                            ? "active"
-                            : ""
-                        }`}
-                        onClick={() => selectRegion(region.region)}
-                        style={{
-                          borderColor:
+              {viewMode === "map" || viewMode === "chart" ? (
+                <div className="region-tabs">
+                  {viewMode === "chart"
+                    ? sortedRegions.map((region) => (
+                        <button
+                          key={region.region}
+                          type="button"
+                          className={`region-tab ${region.region === selectedRegion ? "active" : ""}`}
+                          onClick={() => setSelectedRegion(region.region)}
+                          style={{
+                            borderColor:
+                              region.region === selectedRegion ? region.color : "rgba(255,255,255,0.08)",
+                          }}
+                        >
+                          <span>{regionLabels[region.region]}</span>
+                          <strong>{Math.round(getRegionMarketCap(region.region))}B mcap</strong>
+                        </button>
+                      ))
+                    : articleSortedRegions.map((region) => (
+                        <button
+                          key={region.region}
+                          type="button"
+                          className={`region-tab ${
                             (mapFocusRegion ? mapFocusRegion === region.region : selectedRegion === region.region)
-                              ? region.color
-                              : "rgba(255,255,255,0.08)",
-                        }}
-                      >
-                        <span>{regionLabels[region.region]}</span>
-                        <strong>{region.count} articles</strong>
-                      </button>
-                    ))}
-              </div>
+                              ? "active"
+                              : ""
+                          }`}
+                          onClick={() => selectRegion(region.region)}
+                          style={{
+                            borderColor:
+                              (mapFocusRegion ? mapFocusRegion === region.region : selectedRegion === region.region)
+                                ? region.color
+                                : "rgba(255,255,255,0.08)",
+                          }}
+                        >
+                          <span>{regionLabels[region.region]}</span>
+                          <strong>{region.count} articles</strong>
+                        </button>
+                      ))}
+                </div>
+              ) : null}
 
               {viewMode === "map" ? (
                 <div className="explore-grid">
@@ -805,9 +947,11 @@ export default function ExplorePage() {
                           <p className="risk-summary-copy">
                             {marketRisk
                               ? marketRisk.short_explanation
+                              : marketRiskError
+                                ? marketRiskError
                               : MARKET_RISK_COUNTRIES.has(activeRegion.region)
                                 ? "Run the market risk refresh pipeline to show this country risk score."
-                                : "Market risk is currently available for US, KR, JP, CN, and TW."}
+                                : "Market risk is currently available for US, CA, KR, JP, CN, TW, HK, SG, IN, DE, UK, and FR."}
                           </p>
                           {marketRisk ? (
                             <div className="risk-breakdown-grid">
@@ -870,7 +1014,7 @@ export default function ExplorePage() {
                     )}
                   </aside>
                 </div>
-              ) : (
+              ) : viewMode === "chart" ? (
                 <div className="explore-grid">
                   <section className="map-panel">
                     <div className="map-header">
@@ -999,6 +1143,344 @@ export default function ExplorePage() {
                       </>
                     ) : (
                       <div className="state-card">No stock selected.</div>
+                    )}
+                  </aside>
+                </div>
+              ) : (
+                <div className="explore-grid">
+                  <section className="map-panel">
+                    <div className="map-header">
+                      <div>
+                        <p className="eyebrow">{viewMode === "pf" ? "PF view" : "Personal view"}</p>
+                        <h2>{viewMode === "pf" ? "Portfolio workspace" : "Profile onboarding"}</h2>
+                      </div>
+                      <div className="map-chip">Coming soon</div>
+                    </div>
+
+                    {viewMode === "pf" ? (
+                      <div
+                        className="state-card"
+                        style={{ minHeight: "420px", display: "grid", placeItems: "center" }}
+                      >
+                        PF tab is ready. We can build portfolio-specific UI here next.
+                      </div>
+                    ) : profileStep === "login" ? (
+                      <div className="profile-card">
+                        <div className="profile-card-header">
+                          <p className="eyebrow">Step 1</p>
+                          <h3>Enter a basic profile</h3>
+                          <p>
+                            This is frontend-only for now. Fill in anything minimal, then move to preference setup.
+                          </p>
+                        </div>
+
+                        <div className="profile-form-grid">
+                          <label className="profile-field">
+                            <span>Name</span>
+                            <input
+                              value={profileForm.name}
+                              onChange={(event) =>
+                                setProfileForm((current) => ({ ...current, name: event.target.value }))
+                              }
+                              placeholder="Sean"
+                            />
+                          </label>
+
+                          <label className="profile-field">
+                            <span>Email</span>
+                            <input
+                              value={profileForm.email}
+                              onChange={(event) =>
+                                setProfileForm((current) => ({ ...current, email: event.target.value }))
+                              }
+                              placeholder="sean@example.com"
+                            />
+                          </label>
+                        </div>
+
+                        <div className="profile-actions">
+                          <button
+                            type="button"
+                            className="profile-primary-button"
+                            disabled={!canContinueProfile}
+                            onClick={() => setProfileStep("preferences")}
+                          >
+                            Continue to Preferences
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="profile-card">
+                        <div className="profile-card-header">
+                          <p className="eyebrow">Step 2</p>
+                          <h3>Investor preferences</h3>
+                          <p>Adjust a few core settings. We can wire this to real persistence later.</p>
+                        </div>
+
+                        <div className="profile-preferences-layout">
+                          <section className="profile-input-section">
+                            <div className="profile-input-section-header">
+                              <strong>Strategy</strong>
+                              <span>Define what this portfolio is trying to do over time.</span>
+                            </div>
+                            <div className="profile-form-grid">
+                              <label className="profile-field">
+                                <span>Investment goal</span>
+                                <select
+                                  value={profilePreferences.investmentGoal}
+                                  onChange={(event) =>
+                                    setProfilePreferences((current) => ({
+                                      ...current,
+                                      investmentGoal: event.target.value,
+                                    }))
+                                  }
+                                >
+                                  <option value="capital_preservation">Capital preservation</option>
+                                  <option value="balanced_growth">Balanced growth</option>
+                                  <option value="long_term_growth">Long-term growth</option>
+                                  <option value="income_generation">Income generation</option>
+                                </select>
+                              </label>
+
+                              <label className="profile-field">
+                                <span>Investment horizon</span>
+                                <select
+                                  value={profilePreferences.investmentHorizon}
+                                  onChange={(event) =>
+                                    setProfilePreferences((current) => ({
+                                      ...current,
+                                      investmentHorizon: event.target.value,
+                                    }))
+                                  }
+                                >
+                                  <option value="under_3_years">Under 3 years</option>
+                                  <option value="3_5_years">3 to 5 years</option>
+                                  <option value="5_10_years">5 to 10 years</option>
+                                  <option value="10_plus_years">10+ years</option>
+                                </select>
+                              </label>
+                            </div>
+                          </section>
+
+                          <section className="profile-input-section">
+                            <div className="profile-input-section-header">
+                              <strong>Risk profile</strong>
+                              <span>Set how cautious this investor should be under volatility and drawdowns.</span>
+                            </div>
+                            <div className="profile-slider-stack">
+                              <label className="profile-field">
+                                <div className="profile-field-label">
+                                  <span>Risk aversion</span>
+                                  <span className="info-tooltip" tabIndex={0}>
+                                    ?
+                                    <span className="info-tooltip-card">
+                                      Higher values mean the investor is more sensitive to downside risk and prefers a more defensive portfolio.
+                                    </span>
+                                  </span>
+                                </div>
+                                <div className="profile-slider-row">
+                                  <input
+                                    type="range"
+                                    min="0"
+                                    max="100"
+                                    value={profilePreferences.riskAversion}
+                                    onChange={(event) =>
+                                      setProfilePreferences((current) => ({
+                                        ...current,
+                                        riskAversion: Number(event.target.value),
+                                      }))
+                                    }
+                                  />
+                                  <strong>{profilePreferences.riskAversion}</strong>
+                                </div>
+                                <p className="profile-helper-copy">
+                                  {riskAversionLabel(profilePreferences.riskAversion)}
+                                </p>
+                              </label>
+
+                              <label className="profile-field">
+                                <div className="profile-field-label">
+                                  <span>Loss tolerance</span>
+                                  <span className="info-tooltip" tabIndex={0}>
+                                    ?
+                                    <span className="info-tooltip-card">
+                                      This estimates how much temporary portfolio decline the investor can tolerate before feeling pressure to reduce risk.
+                                    </span>
+                                  </span>
+                                </div>
+                                <div className="profile-slider-row">
+                                  <input
+                                    type="range"
+                                    min="0"
+                                    max="50"
+                                    value={profilePreferences.lossTolerance}
+                                    onChange={(event) =>
+                                      setProfilePreferences((current) => ({
+                                        ...current,
+                                        lossTolerance: Number(event.target.value),
+                                      }))
+                                    }
+                                  />
+                                  <strong>{profilePreferences.lossTolerance}%</strong>
+                                </div>
+                                <p className="profile-helper-copy">
+                                  {lossToleranceLabel(profilePreferences.lossTolerance)}
+                                </p>
+                              </label>
+                            </div>
+                          </section>
+
+                          <section className="profile-input-section">
+                            <div className="profile-input-section-header">
+                              <strong>Personal context</strong>
+                              <span>Capture how stable the investor's situation is month to month.</span>
+                            </div>
+                            <div className="profile-form-grid">
+                              <label className="profile-field">
+                                <span>Occupation</span>
+                                <select
+                                  value={profilePreferences.occupation}
+                                  onChange={(event) =>
+                                    setProfilePreferences((current) => ({
+                                      ...current,
+                                      occupation: event.target.value,
+                                    }))
+                                  }
+                                >
+                                  <option value="student">Student</option>
+                                  <option value="professional">Professional</option>
+                                  <option value="self_employed">Self-employed</option>
+                                  <option value="other">Other</option>
+                                </select>
+                              </label>
+
+                              <label className="profile-field">
+                                <span>Monthly cash flow stability</span>
+                                <select
+                                  value={profilePreferences.monthlyCashFlowStability}
+                                  onChange={(event) =>
+                                    setProfilePreferences((current) => ({
+                                      ...current,
+                                      monthlyCashFlowStability: event.target.value,
+                                    }))
+                                  }
+                                >
+                                  <option value="low">Low</option>
+                                  <option value="moderate">Moderate</option>
+                                  <option value="high">High</option>
+                                </select>
+                              </label>
+                            </div>
+                          </section>
+                        </div>
+
+                        <div className="profile-actions">
+                          <button
+                            type="button"
+                            className="map-back-button"
+                            onClick={() => setProfileStep("login")}
+                          >
+                            Back
+                          </button>
+                          <button type="button" className="profile-primary-button">
+                            Save Later
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </section>
+
+                  <aside className="news-panel">
+                    {viewMode === "pf" ? (
+                      <div className="state-card" style={{ minHeight: "100%" }}>
+                        Empty portfolio panel placeholder.
+                      </div>
+                    ) : (
+                      <div className="profile-preview-card">
+                        <div className="profile-preview-header">
+                          <p className="eyebrow">Profile Preview</p>
+                          <h3>{profileForm.name || "New user"}</h3>
+                          <p>{profileForm.email || "No email entered yet"}</p>
+                        </div>
+
+                        <div className="profile-preview-hero">
+                          <div className="profile-preview-hero-top">
+                            <div className="profile-preview-pill">Inputs ready</div>
+                            <div className="profile-preview-score">
+                              <span>Profile fit</span>
+                              <strong>{riskAversionLabel(profilePreferences.riskAversion)}</strong>
+                            </div>
+                          </div>
+                          <div className="profile-preview-hero-grid">
+                            <div className="profile-mini-card">
+                              <span>Risk posture</span>
+                              <strong>{riskPostureLabel(profilePreferences.riskAversion)}</strong>
+                            </div>
+                            <div className="profile-mini-card">
+                              <span>Horizon</span>
+                              <strong>{humanizeProfileValue(profilePreferences.investmentHorizon)}</strong>
+                            </div>
+                            <div className="profile-mini-card">
+                              <span>Cash flow</span>
+                              <strong>{humanizeProfileValue(profilePreferences.monthlyCashFlowStability)}</strong>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="profile-preview-section">
+                          <div className="profile-section-header">
+                            <strong>Investor setup</strong>
+                            <span>Core identity and objective</span>
+                          </div>
+                          <div className="profile-summary-list">
+                            <div className="profile-summary-row">
+                              <span>Goal</span>
+                              <strong>{humanizeProfileValue(profilePreferences.investmentGoal)}</strong>
+                            </div>
+                            <div className="profile-summary-row">
+                              <span>Occupation</span>
+                              <strong>{humanizeProfileValue(profilePreferences.occupation)}</strong>
+                            </div>
+                            <div className="profile-summary-row">
+                              <span>Cash flow stability</span>
+                              <strong>
+                                {humanizeProfileValue(profilePreferences.monthlyCashFlowStability)}
+                              </strong>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="profile-preview-section">
+                          <div className="profile-section-header">
+                            <strong>Risk settings</strong>
+                            <span>How conservative or aggressive this investor may be</span>
+                          </div>
+                          <div className="profile-summary-list">
+                            <div className="profile-summary-row">
+                              <span>Risk aversion</span>
+                              <strong>{profilePreferences.riskAversion}</strong>
+                            </div>
+                            <div className="profile-summary-row">
+                              <span>Loss tolerance</span>
+                              <strong>{profilePreferences.lossTolerance}%</strong>
+                            </div>
+                            <div className="profile-summary-row">
+                              <span>Interpretation</span>
+                              <strong>{lossToleranceLabel(profilePreferences.lossTolerance)}</strong>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="profile-insight-card">
+                          <span className="profile-insight-label">Interpretation</span>
+                          <strong>{riskPostureLabel(profilePreferences.riskAversion)}</strong>
+                          <p>
+                            {lossToleranceLabel(profilePreferences.lossTolerance)} with{" "}
+                            {humanizeProfileValue(profilePreferences.monthlyCashFlowStability)} monthly cash flow
+                            stability.
+                          </p>
+                        </div>
+                      </div>
                     )}
                   </aside>
                 </div>

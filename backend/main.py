@@ -28,18 +28,24 @@ load_dotenv(Path(__file__).with_name(".env"))
 APP_ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_PATH = APP_ROOT / "supabase" / "schema.sql"
 GDELT_URL = "https://api.gdeltproject.org/api/v2/doc/doc"
-REGIONS = ["US", "EU", "ASIA"]
-ASIA_SUBREGIONS = ["KR", "CN", "JP", "TW"]
+REGIONS = ["NA", "EU", "ASIA"]
+NA_SUBREGIONS = ["US", "CA"]
+ASIA_SUBREGIONS = ["KR", "CN", "JP", "TW", "HK", "SG", "IN"]
 EU_SUBREGIONS = ["DE", "UK", "FR"]
-REGION_ORDER = [*REGIONS, *ASIA_SUBREGIONS, *EU_SUBREGIONS]
+REGION_ORDER = [*REGIONS, *NA_SUBREGIONS, *ASIA_SUBREGIONS, *EU_SUBREGIONS]
 REGION_NAMES = {
+    "NA": "North America",
     "US": "United States",
     "EU": "Europe",
     "ASIA": "Asia",
+    "CA": "Canada",
     "KR": "South Korea",
     "CN": "China",
     "JP": "Japan",
     "TW": "Taiwan",
+    "HK": "Hong Kong",
+    "SG": "Singapore",
+    "IN": "India",
     "DE": "Germany",
     "UK": "United Kingdom",
     "FR": "France",
@@ -106,39 +112,20 @@ def build_region_summary(
     sentiment_score: float,
 ) -> str:
     if not articles:
-        return f"{region_name} has no recent article cluster yet."
+        return f"{region_name} has no major market update yet."
 
-    topic_counter: Counter[str] = Counter()
-    source_counter: Counter[str] = Counter()
-    for article in articles:
-        for topic in article.get("topic_tags", []):
-            topic_counter.update([topic])
-        source_counter.update([article.get("source_name") or article.get("source") or "Unknown"])
+    primary_article = articles[0]
+    primary_title = re.sub(r"\s+", " ", (primary_article.get("title") or "").strip())
+    if primary_title:
+        trimmed = primary_title.rstrip(".")
+        if len(trimmed) > 120:
+            trimmed = trimmed[:117].rsplit(" ", 1)[0]
+            return f"{trimmed}..."
+        return f"{trimmed}."
 
-    top_topics = [topic.replace("_", " ") for topic, _ in topic_counter.most_common(2)]
-    dominant_source = source_counter.most_common(1)[0][0] if source_counter else "major outlets"
+    source_name = primary_article.get("source_name") or primary_article.get("source") or region_name
     tone = sentiment_label(sentiment_score)
-    article_count = len(articles)
-
-    if len(top_topics) >= 2:
-        return (
-            f"{region_name} is being driven by {top_topics[0]} and {top_topics[1]} themes "
-            f"across {article_count} recent articles, with overall tone leaning {tone}."
-        )
-    if top_topics:
-        return (
-            f"{region_name} is being driven mainly by {top_topics[0]} headlines from {dominant_source}, "
-            f"with overall tone leaning {tone}."
-        )
-
-    top_title = articles[0].get("title", "").strip()
-    if top_title:
-        return (
-            f"{region_name} is currently leaning {tone}, led by the latest {dominant_source} headline: "
-            f"{top_title[:110].rstrip()}."
-        )
-
-    return f"{region_name} is currently leaning {tone} across {article_count} recent articles."
+    return f"{source_name} moved the latest {region_name} market story into {tone} territory."
 
 
 def db_url() -> str:
@@ -223,6 +210,33 @@ def detect_asia_subregion(title: str, source: str, url: str) -> str | None:
         "cna.com.tw",
         "udn.com",
     ]
+    hk_keywords = [
+        "hong kong",
+        "hang seng",
+        "hkex",
+        "scmp",
+        "hongkongfp",
+        "rthk",
+    ]
+    sg_keywords = [
+        "singapore",
+        "straits times",
+        "business times",
+        "sgx",
+        "channel news asia",
+        "cna.asia",
+    ]
+    in_keywords = [
+        "india",
+        "indian",
+        "mumbai",
+        "nifty",
+        "sensex",
+        "economic times",
+        "moneycontrol",
+        "livemint",
+        "business standard",
+    ]
 
     if _contains_hangul(combined) or any(keyword in combined for keyword in kr_keywords):
         return "KR"
@@ -230,6 +244,12 @@ def detect_asia_subregion(title: str, source: str, url: str) -> str | None:
         return "JP"
     if any(keyword in combined for keyword in tw_keywords):
         return "TW"
+    if any(keyword in combined for keyword in hk_keywords):
+        return "HK"
+    if any(keyword in combined for keyword in sg_keywords):
+        return "SG"
+    if any(keyword in combined for keyword in in_keywords):
+        return "IN"
     if _contains_cjk(combined) or any(keyword in combined for keyword in cn_keywords):
         return "CN"
 
@@ -257,7 +277,27 @@ def detect_eu_subregion(title: str, source: str, url: str) -> str | None:
     return None
 
 
+def detect_na_subregion(title: str, source: str, url: str) -> str | None:
+    combined = f"{title} {source} {url}".lower()
+
+    if re.search(r"\b(canada|canadian|toronto|tsx|ottawa)\b", combined) or any(
+        keyword in combined for keyword in ["the globe and mail", "bnn bloomberg", "financial post", "cbc.ca"]
+    ):
+        return "CA"
+
+    if re.search(r"\b(united states|u\.s\.|us|america|american|wall street|nasdaq|s&p 500|dow)\b", combined) or any(
+        keyword in combined for keyword in ["cnbc", "marketwatch", "wsj", "wall street journal", "nyse"]
+    ):
+        return "US"
+
+    return None
+
+
 def infer_region_codes(title: str, source: str, url: str) -> tuple[str, str | None]:
+    subregion = detect_na_subregion(title, source, url)
+    if subregion:
+        return "NA", subregion
+
     subregion = detect_asia_subregion(title, source, url)
     if subregion:
         return "ASIA", subregion
@@ -427,6 +467,26 @@ def fallback_articles() -> list[dict[str, Any]]:
             "title": "Taiwan chipmakers rally as AI server orders accelerate",
             "source": "Taipei Times",
             "url": "https://www.taipeitimes.com/News/biz/mvp-taiwan-chip-9",
+        },
+        {
+            "title": "Canadian banks stay resilient as TSX traders watch growth outlook",
+            "source": "Financial Post",
+            "url": "https://financialpost.com/mvp-canada-banks-13",
+        },
+        {
+            "title": "Hong Kong equities rebound as Hang Seng tech names recover",
+            "source": "South China Morning Post",
+            "url": "https://www.scmp.com/business/mvp-hong-kong-tech-14",
+        },
+        {
+            "title": "Singapore lenders firm as regional wealth flows remain steady",
+            "source": "The Business Times",
+            "url": "https://www.businesstimes.com.sg/mvp-singapore-banks-15",
+        },
+        {
+            "title": "Indian benchmarks climb as domestic inflows support large caps",
+            "source": "Economic Times",
+            "url": "https://economictimes.indiatimes.com/markets/mvp-india-largecaps-16",
         },
         {
             "title": "German industrial shares drift as factory orders soften",
@@ -964,6 +1024,8 @@ def load_articles_from_db(region: str | None = None, limit: int = 40) -> list[di
 
 
 def get_parent_region(region: str) -> str:
+    if region in NA_SUBREGIONS:
+        return "NA"
     if region in ASIA_SUBREGIONS:
         return "ASIA"
     if region in EU_SUBREGIONS:

@@ -13,7 +13,7 @@ from psycopg.types.json import Jsonb
 
 ALPHA_VANTAGE_URL = "https://www.alphavantage.co/query"
 FRED_SERIES_URL = "https://api.stlouisfed.org/fred/series/observations"
-RISK_COUNTRY_ORDER = ["KR", "JP", "CN", "TW", "DE", "UK", "FR", "US"]
+RISK_COUNTRY_ORDER = ["US", "CA", "KR", "JP", "CN", "TW", "HK", "SG", "IN", "DE", "UK", "FR"]
 GLOBAL_BENCHMARK_SYMBOL = "SPY"
 GLOBAL_BENCHMARK_NAME = "SPDR S&P 500 ETF Trust"
 VIX_SERIES_ID = "VIXCLS"
@@ -35,6 +35,29 @@ class CountryMarketConfig:
 
 
 COUNTRY_CONFIGS: dict[str, CountryMarketConfig] = {
+    "US": CountryMarketConfig(
+        iso_code="US",
+        country_name="United States",
+        region_group="NA",
+        currency_code="USD",
+        market_symbol="SPY",
+        market_name="SPDR S&P 500 ETF Trust",
+        benchmark_symbol=GLOBAL_BENCHMARK_SYMBOL,
+        benchmark_name=GLOBAL_BENCHMARK_NAME,
+    ),
+    "CA": CountryMarketConfig(
+        iso_code="CA",
+        country_name="Canada",
+        region_group="NA",
+        currency_code="CAD",
+        market_symbol="EWC",
+        market_name="iShares MSCI Canada ETF",
+        benchmark_symbol=GLOBAL_BENCHMARK_SYMBOL,
+        benchmark_name=GLOBAL_BENCHMARK_NAME,
+        fx_pair_code="USDCAD",
+        fx_from_symbol="USD",
+        fx_to_symbol="CAD",
+    ),
     "KR": CountryMarketConfig(
         iso_code="KR",
         country_name="South Korea",
@@ -87,6 +110,45 @@ COUNTRY_CONFIGS: dict[str, CountryMarketConfig] = {
         fx_from_symbol="USD",
         fx_to_symbol="TWD",
     ),
+    "HK": CountryMarketConfig(
+        iso_code="HK",
+        country_name="Hong Kong",
+        region_group="ASIA",
+        currency_code="HKD",
+        market_symbol="EWH",
+        market_name="iShares MSCI Hong Kong ETF",
+        benchmark_symbol=GLOBAL_BENCHMARK_SYMBOL,
+        benchmark_name=GLOBAL_BENCHMARK_NAME,
+        fx_pair_code="USDHKD",
+        fx_from_symbol="USD",
+        fx_to_symbol="HKD",
+    ),
+    "SG": CountryMarketConfig(
+        iso_code="SG",
+        country_name="Singapore",
+        region_group="ASIA",
+        currency_code="SGD",
+        market_symbol="EWS",
+        market_name="iShares MSCI Singapore ETF",
+        benchmark_symbol=GLOBAL_BENCHMARK_SYMBOL,
+        benchmark_name=GLOBAL_BENCHMARK_NAME,
+        fx_pair_code="USDSGD",
+        fx_from_symbol="USD",
+        fx_to_symbol="SGD",
+    ),
+    "IN": CountryMarketConfig(
+        iso_code="IN",
+        country_name="India",
+        region_group="ASIA",
+        currency_code="INR",
+        market_symbol="INDA",
+        market_name="iShares MSCI India ETF",
+        benchmark_symbol=GLOBAL_BENCHMARK_SYMBOL,
+        benchmark_name=GLOBAL_BENCHMARK_NAME,
+        fx_pair_code="USDINR",
+        fx_from_symbol="USD",
+        fx_to_symbol="INR",
+    ),
     "DE": CountryMarketConfig(
         iso_code="DE",
         country_name="Germany",
@@ -125,16 +187,6 @@ COUNTRY_CONFIGS: dict[str, CountryMarketConfig] = {
         fx_pair_code="USDEUR",
         fx_from_symbol="USD",
         fx_to_symbol="EUR",
-    ),
-    "US": CountryMarketConfig(
-        iso_code="US",
-        country_name="United States",
-        region_group="US",
-        currency_code="USD",
-        market_symbol="SPY",
-        market_name="SPDR S&P 500 ETF Trust",
-        benchmark_symbol=GLOBAL_BENCHMARK_SYMBOL,
-        benchmark_name=GLOBAL_BENCHMARK_NAME,
     ),
 }
 
