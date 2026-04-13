@@ -14,6 +14,15 @@ MVP-first monorepo for an AI-powered global market intelligence platform aimed a
 - AI chat: OpenAI Responses API with tool calling
 - News ingestion: GNews for global coverage, app-level sentiment aggregation
 
+## Current Demo Path
+
+Right now the actively used local demo runs on:
+
+- Backend: [`backend/main.py`](/Users/gideokmin/Documents/Global%20Capstone/backend/main.py)
+- Frontend: [`frontend/app/explore/page.tsx`](/Users/gideokmin/Documents/Global%20Capstone/frontend/app/explore/page.tsx)
+
+This lightweight path is where the current map, bubble chart, and news flow are being iterated fastest.
+
 ## Monorepo Structure
 
 ```text
@@ -52,6 +61,37 @@ MVP-first monorepo for an AI-powered global market intelligence platform aimed a
 - `docs/` holds rollout, deployment, and architecture notes so the code stays clean.
 
 ## Local Setup
+
+### Current Supabase-backed demo setup
+
+```bash
+cd backend
+cp .env.example .env
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8000
+```
+
+Then in another terminal:
+
+```bash
+curl -X POST http://127.0.0.1:8000/setup-db
+curl -X POST http://127.0.0.1:8000/ingest
+curl -X POST http://127.0.0.1:8000/api/market-risk/refresh
+```
+
+`/api/market-risk/refresh` requires `ALPHA_VANTAGE_API_KEY` in `backend/.env`.
+
+Frontend:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Open `http://localhost:3001/explore` or `http://localhost:3002/explore` depending on your current dev port.
 
 ### 1. Clone the repo
 
@@ -134,4 +174,3 @@ Supabase SQL schema: [supabase/schema.sql](/Users/gideokmin/Documents/Global%20C
 ## Ingestion Design
 
 Scheduled ingestion and aggregation notes: [docs/ingestion-pipeline.md](/Users/gideokmin/Documents/Global%20Capstone/docs/ingestion-pipeline.md)
-

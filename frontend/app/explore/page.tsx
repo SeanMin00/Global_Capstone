@@ -18,7 +18,32 @@ type RegionSummary = {
   sentiment: number;
   count: number;
   color: string;
+  summary: string;
   articles: RegionArticle[];
+};
+
+type MarketRiskSnapshot = {
+  country: string;
+  iso_code: string;
+  market_risk_score: number;
+  risk_level: "low" | "moderate" | "high";
+  component_scores: {
+    volatility: number;
+    beta: number;
+    fx_risk: number;
+  };
+  raw_metrics: {
+    realized_vol_30d: number | null;
+    beta_60d: number | null;
+    fx_vol_30d: number | null;
+    market_return_60d: number | null;
+    benchmark_return_60d: number | null;
+    vix_close: number | null;
+  };
+  data_source_used: string[];
+  as_of_date: string;
+  last_updated_timestamp: string;
+  short_explanation: string;
 };
 
 type ViewMode = "map" | "chart";
@@ -41,6 +66,7 @@ const DETAIL_REGIONS: Record<"ASIA" | "EU", RegionCode[]> = {
   ASIA: ASIA_DETAIL_REGIONS,
   EU: EU_DETAIL_REGIONS,
 };
+const MARKET_RISK_COUNTRIES = new Set<RegionCode>(["US", "KR", "JP", "CN", "TW", "DE", "UK", "FR"]);
 
 const regionLabels: Record<RegionCode, string> = {
   US: "🇺🇸 US",
@@ -210,6 +236,18 @@ function stockSizeClass(size: HeatmapStock["size"]) {
   return "heat-tile-sm";
 }
 
+function riskToneLabel(level: MarketRiskSnapshot["risk_level"] | null) {
+  if (level === "high") return "High";
+  if (level === "moderate") return "Moderate";
+  if (level === "low") return "Low";
+  return "N/A";
+}
+
+function formatPercent(value: number | null) {
+  if (value === null || Number.isNaN(value)) return "--";
+  return `${(value * 100).toFixed(2)}%`;
+}
+
 function scaleBubbleSize(value: number, minValue: number, maxValue: number, minSize: number, maxSize: number) {
   if (value <= 0) {
     return minSize;
@@ -233,6 +271,8 @@ export default function ExplorePage() {
   const [viewMode, setViewMode] = useState<ViewMode>("map");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [marketRisk, setMarketRisk] = useState<MarketRiskSnapshot | null>(null);
+  const [marketRiskLoading, setMarketRiskLoading] = useState(false);
 
   useEffect(() => {
     async function loadRegions() {
@@ -306,6 +346,35 @@ export default function ExplorePage() {
       [...sectorTotals.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "Technology";
     setSelectedSector(firstSector);
   }, [selectedRegion]);
+
+  useEffect(() => {
+    async function loadMarketRisk() {
+      if (!MARKET_RISK_COUNTRIES.has(selectedRegion)) {
+        setMarketRisk(null);
+        return;
+      }
+
+      try {
+        setMarketRiskLoading(true);
+        const response = await fetch(`http://localhost:8000/api/market-risk/${selectedRegion}`);
+        if (!response.ok) {
+          setMarketRisk(null);
+          return;
+        }
+
+        const payload = (await response.json()) as MarketRiskSnapshot;
+        setMarketRisk(payload);
+      } catch {
+        setMarketRisk(null);
+      } finally {
+        setMarketRiskLoading(false);
+      }
+    }
+
+    if (viewMode === "map") {
+      loadMarketRisk();
+    }
+  }, [selectedRegion, viewMode]);
 
   const activeRegion = useMemo(
     () => regions.find((region) => region.region === selectedRegion) ?? regions[0],
@@ -680,11 +749,15 @@ export default function ExplorePage() {
                           <div>
                             <p className="eyebrow">{activeRegion.region}</p>
                             <h2>{activeRegion.region_name}</h2>
-                            <p className="news-subtitle">
-                              Related headlines from the current API response
-                            </p>
                           </div>
-                          <div className="sentiment-pill">{sentimentLabel(activeRegion.sentiment)}</div>
+                        </div>
+
+                        <div className="summary-hero-card">
+                          <div className="summary-hero-top">
+                            <span className="summary-hero-label">Daily Brief</span>
+                            <div className="sentiment-pill">{sentimentLabel(activeRegion.sentiment)}</div>
+                          </div>
+                          <p className="summary-hero-copy">{activeRegion.summary}</p>
                         </div>
 
                         <div className="sentiment-bar">
@@ -703,6 +776,16 @@ export default function ExplorePage() {
                             <strong>{activeRegion.sentiment.toFixed(2)}</strong>
                           </div>
                           <div className="metric-box">
+                            <span>Market risk</span>
+                            <strong>
+                              {marketRiskLoading
+                                ? "..."
+                                : marketRisk
+                                  ? marketRisk.market_risk_score.toFixed(1)
+                                  : "--"}
+                            </strong>
+                          </div>
+                          <div className="metric-box">
                             <span>Market cap</span>
                             <strong>{Math.round(getRegionMarketCap(activeRegion.region))}B</strong>
                           </div>
@@ -710,6 +793,45 @@ export default function ExplorePage() {
                             <span>Articles</span>
                             <strong>{activeRegion.count}</strong>
                           </div>
+                        </div>
+
+                        <div className="risk-summary-card">
+                          <div className="risk-summary-header">
+                            <strong>Market Risk</strong>
+                            <span className={`risk-level-pill risk-${marketRisk?.risk_level ?? "none"}`}>
+                              {marketRiskLoading ? "Loading" : riskToneLabel(marketRisk?.risk_level ?? null)}
+                            </span>
+                          </div>
+                          <p className="risk-summary-copy">
+                            {marketRisk
+                              ? marketRisk.short_explanation
+                              : MARKET_RISK_COUNTRIES.has(activeRegion.region)
+                                ? "Run the market risk refresh pipeline to show this country risk score."
+                                : "Market risk is currently available for US, KR, JP, CN, and TW."}
+                          </p>
+                          {marketRisk ? (
+                            <div className="risk-breakdown-grid">
+                              <div className="risk-breakdown-item">
+                                <span>Volatility</span>
+                                <strong>{marketRisk.component_scores.volatility.toFixed(1)}</strong>
+                                <small>{formatPercent(marketRisk.raw_metrics.realized_vol_30d)}</small>
+                              </div>
+                              <div className="risk-breakdown-item">
+                                <span>Beta</span>
+                                <strong>{marketRisk.component_scores.beta.toFixed(1)}</strong>
+                                <small>
+                                  {marketRisk.raw_metrics.beta_60d !== null
+                                    ? marketRisk.raw_metrics.beta_60d.toFixed(2)
+                                    : "--"}
+                                </small>
+                              </div>
+                              <div className="risk-breakdown-item">
+                                <span>FX Risk</span>
+                                <strong>{marketRisk.component_scores.fx_risk.toFixed(1)}</strong>
+                                <small>{formatPercent(marketRisk.raw_metrics.fx_vol_30d)}</small>
+                              </div>
+                            </div>
+                          ) : null}
                         </div>
 
                         <div className="article-list">

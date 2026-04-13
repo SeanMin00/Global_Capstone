@@ -18,6 +18,9 @@
 | GET | `/heatmap` | Return treemap / heatmap nodes for sectors and regions |
 | POST | `/chat` | AI assistant endpoint with optional tool usage |
 | GET | `/ingestion/plan` | Debug route for the ingestion workflow during setup |
+| POST | `/api/market-risk/refresh` | Fetch market/FX data, compute country risk, and store latest scores |
+| GET | `/api/market-risk` | Return the latest stored market risk scores for KR, JP, CN, TW, US |
+| GET | `/api/market-risk/{countryCode}` | Return the latest stored market risk score for one country |
 
 ## Endpoint Contracts
 
@@ -111,4 +114,3 @@ Response:
 - Add `/dashboard/summary`
 - Add `/ingest/run` behind internal auth
 - Add `/events`
-

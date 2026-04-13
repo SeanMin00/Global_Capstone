@@ -722,6 +722,38 @@ input {
   line-height: 1.6;
 }
 
+.summary-hero-card {
+  margin-top: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top left, rgba(56, 189, 248, 0.08), transparent 26%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+  padding: 18px;
+}
+
+.summary-hero-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.summary-hero-label {
+  color: #b6d4ff;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.summary-hero-copy {
+  margin: 14px 0 0;
+  color: #e5eefc;
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
 .sentiment-bar {
   margin-top: 18px;
   height: 12px;
@@ -757,6 +789,84 @@ input {
 
 .metric-box strong {
   font-size: 1.6rem;
+}
+
+.risk-summary-card {
+  margin-top: 14px;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 16px;
+}
+
+.risk-summary-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.risk-level-pill {
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.risk-low {
+  background: rgba(34, 197, 94, 0.12);
+  color: #86efac;
+}
+
+.risk-moderate {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fde68a;
+}
+
+.risk-high {
+  background: rgba(239, 68, 68, 0.12);
+  color: #fca5a5;
+}
+
+.risk-none {
+  background: rgba(148, 163, 184, 0.14);
+  color: #cbd5e1;
+}
+
+.risk-summary-copy {
+  margin: 12px 0 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.risk-breakdown-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.risk-breakdown-item {
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 12px;
+}
+
+.risk-breakdown-item span,
+.risk-breakdown-item small {
+  display: block;
+  color: var(--muted);
+}
+
+.risk-breakdown-item strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 1.1rem;
+}
+
+.risk-breakdown-item small {
+  margin-top: 6px;
 }
 
 .article-list {
@@ -826,6 +936,10 @@ input {
   }
 
   .map-detail-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .risk-breakdown-grid {
     grid-template-columns: 1fr;
   }
 }

@@ -112,6 +112,88 @@ create table if not exists public.chat_logs (
   created_at timestamptz not null default timezone('utc', now())
 );
 
+create table if not exists public.countries (
+  iso_code text primary key,
+  country_name text not null,
+  region_group text not null,
+  currency_code text not null,
+  created_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now())
+);
+
+create table if not exists public.country_market_mapping (
+  id uuid primary key default gen_random_uuid(),
+  country_code text not null references public.countries(iso_code) on delete cascade,
+  market_symbol text not null,
+  market_name text not null,
+  benchmark_symbol text not null,
+  benchmark_name text not null,
+  fx_pair_code text,
+  fx_from_symbol text,
+  fx_to_symbol text,
+  provider text not null default 'alpha_vantage',
+  is_primary boolean not null default true,
+  created_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now()),
+  unique (country_code, market_symbol)
+);
+
+create table if not exists public.raw_price_data (
+  id uuid primary key default gen_random_uuid(),
+  symbol text not null,
+  trade_date date not null,
+  open_price numeric(18,6) not null,
+  high_price numeric(18,6) not null,
+  low_price numeric(18,6) not null,
+  close_price numeric(18,6) not null,
+  adjusted_close numeric(18,6) not null,
+  volume bigint,
+  provider text not null default 'alpha_vantage',
+  raw_payload jsonb not null default '{}'::jsonb,
+  fetched_at timestamptz not null default timezone('utc', now()),
+  unique (symbol, trade_date)
+);
+
+create table if not exists public.raw_fx_data (
+  id uuid primary key default gen_random_uuid(),
+  pair_code text not null,
+  from_symbol text not null,
+  to_symbol text not null,
+  trade_date date not null,
+  open_rate numeric(18,8) not null,
+  high_rate numeric(18,8) not null,
+  low_rate numeric(18,8) not null,
+  close_rate numeric(18,8) not null,
+  provider text not null default 'alpha_vantage',
+  raw_payload jsonb not null default '{}'::jsonb,
+  fetched_at timestamptz not null default timezone('utc', now()),
+  unique (pair_code, trade_date)
+);
+
+create table if not exists public.market_risk_scores (
+  id uuid primary key default gen_random_uuid(),
+  country_code text not null references public.countries(iso_code) on delete cascade,
+  as_of_date date not null,
+  market_risk_score numeric(6,2) not null,
+  risk_level text not null,
+  volatility_component_score numeric(6,2) not null,
+  beta_component_score numeric(6,2) not null,
+  fx_component_score numeric(6,2) not null,
+  realized_vol_30d numeric(10,6),
+  beta_60d numeric(10,6),
+  fx_vol_30d numeric(10,6),
+  benchmark_return_60d numeric(10,6),
+  market_return_60d numeric(10,6),
+  vix_close numeric(10,4),
+  weights jsonb not null default '{}'::jsonb,
+  raw_metrics jsonb not null default '{}'::jsonb,
+  data_sources jsonb not null default '[]'::jsonb,
+  explanation text not null,
+  created_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now()),
+  unique (country_code, as_of_date)
+);
+
 create index if not exists idx_news_articles_region_published
   on public.news_articles (region_code, published_at desc);
 
@@ -130,6 +212,18 @@ create index if not exists idx_watchlists_user
 create index if not exists idx_chat_logs_user
   on public.chat_logs (user_id, created_at desc);
 
+create index if not exists idx_country_market_mapping_country
+  on public.country_market_mapping (country_code, is_primary);
+
+create index if not exists idx_raw_price_data_symbol_date
+  on public.raw_price_data (symbol, trade_date desc);
+
+create index if not exists idx_raw_fx_data_pair_date
+  on public.raw_fx_data (pair_code, trade_date desc);
+
+create index if not exists idx_market_risk_scores_country_date
+  on public.market_risk_scores (country_code, as_of_date desc);
+
 create trigger set_users_updated_at
 before update on public.users
 for each row execute procedure public.set_updated_at();
@@ -140,6 +234,18 @@ for each row execute procedure public.set_updated_at();
 
 create trigger set_watchlists_updated_at
 before update on public.watchlists
+for each row execute procedure public.set_updated_at();
+
+create trigger set_countries_updated_at
+before update on public.countries
+for each row execute procedure public.set_updated_at();
+
+create trigger set_country_market_mapping_updated_at
+before update on public.country_market_mapping
+for each row execute procedure public.set_updated_at();
+
+create trigger set_market_risk_scores_updated_at
+before update on public.market_risk_scores
 for each row execute procedure public.set_updated_at();
 
 create or replace function public.handle_new_user()
@@ -204,4 +310,3 @@ create policy "chat_logs_manage_own"
 on public.chat_logs for all
 using (auth.uid() = user_id)
 with check (auth.uid() = user_id);
-
