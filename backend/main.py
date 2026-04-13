@@ -1,4 +1,5 @@
 import hashlib
+import re
 from collections import defaultdict
 from typing import Any
 from urllib.parse import urlparse
@@ -19,7 +20,8 @@ app.add_middleware(
 
 GDELT_URL = "https://api.gdeltproject.org/api/v2/doc/doc"
 REGIONS = ["US", "EU", "ASIA"]
-ASIA_SUBREGIONS = ["KR", "CN", "JP"]
+ASIA_SUBREGIONS = ["KR", "CN", "JP", "TW"]
+EU_SUBREGIONS = ["DE", "UK", "FR"]
 REGION_NAMES = {
     "US": "United States",
     "EU": "Europe",
@@ -27,6 +29,10 @@ REGION_NAMES = {
     "KR": "South Korea",
     "CN": "China",
     "JP": "Japan",
+    "TW": "Taiwan",
+    "DE": "Germany",
+    "UK": "United Kingdom",
+    "FR": "France",
 }
 ARTICLE_LIMIT_PER_REGION = 16
 
@@ -90,13 +96,47 @@ def detect_asia_subregion(title: str, source: str, url: str) -> str | None:
         "japantimes",
         "nikkei.com",
     ]
+    tw_keywords = [
+        "taiwan",
+        "taipei",
+        "tsmc",
+        "formosa",
+        "taiwan semiconductor",
+        "taipei times",
+        "digitimes",
+        "cna.com.tw",
+        "udn.com",
+    ]
 
     if _contains_hangul(combined) or any(keyword in combined for keyword in kr_keywords):
         return "KR"
     if _contains_kana(combined) or any(keyword in combined for keyword in jp_keywords):
         return "JP"
+    if any(keyword in combined for keyword in tw_keywords):
+        return "TW"
     if _contains_cjk(combined) or any(keyword in combined for keyword in cn_keywords):
         return "CN"
+
+    return None
+
+
+def detect_eu_subregion(title: str, source: str, url: str) -> str | None:
+    combined = f"{title} {source} {url}".lower()
+
+    if re.search(r"\b(germany|german|berlin|frankfurt|dax)\b", combined) or any(
+        keyword in combined
+        for keyword in ["handelsblatt", "tagesschau", "faz.net", "spiegel", "welt.de"]
+    ):
+        return "DE"
+    if re.search(r"\b(united kingdom|britain|british|london)\b", combined) or any(
+        keyword in combined
+        for keyword in ["ft.com", "the guardian", "telegraph", "bbc", "dailymail.co.uk", "cityam"]
+    ):
+        return "UK"
+    if re.search(r"\b(france|french|paris)\b", combined) or any(
+        keyword in combined for keyword in ["cac 40", "le monde", "les echos", "bfmtv", "france24"]
+    ):
+        return "FR"
 
     return None
 
@@ -149,6 +189,26 @@ def fallback_articles() -> list[dict[str, Any]]:
             "url": "https://asia.nikkei.com/Business/Markets/mvp-japan-exporters-8",
         },
         {
+            "title": "Taiwan chipmakers rally as AI server orders accelerate",
+            "source": "Taipei Times",
+            "url": "https://www.taipeitimes.com/News/biz/mvp-taiwan-chip-9",
+        },
+        {
+            "title": "German industrial shares drift as factory orders soften",
+            "source": "Handelsblatt",
+            "url": "https://www.handelsblatt.com/mvp-germany-industrials-10",
+        },
+        {
+            "title": "UK banks hold firm as London traders watch rate outlook",
+            "source": "Financial Times",
+            "url": "https://www.ft.com/content/mvp-uk-banks-11",
+        },
+        {
+            "title": "French luxury stocks steady ahead of new demand guidance",
+            "source": "Les Echos",
+            "url": "https://www.lesechos.fr/mvp-france-luxury-12",
+        },
+        {
             "title": "Oil and trade headlines keep global markets watchful",
             "source": "Bloomberg",
             "url": "https://www.bloomberg.com/news/articles/mvp-oil-trade-4",
@@ -163,7 +223,11 @@ def fallback_articles() -> list[dict[str, Any]]:
     articles: list[dict[str, Any]] = []
     for item in base:
         subregion = detect_asia_subregion(item["title"], item["source"], item["url"])
-        region = "ASIA" if subregion else stable_region(item["url"])
+        if subregion:
+            region = "ASIA"
+        else:
+            subregion = detect_eu_subregion(item["title"], item["source"], item["url"])
+            region = "EU" if subregion else stable_region(item["url"])
         sentiment = stable_sentiment(item["url"])
         articles.append(
             {
@@ -212,7 +276,11 @@ async def fetch_gdelt_articles() -> list[dict[str, Any]]:
 
         source = item.get("domain") or item.get("source") or urlparse(url).netloc or "Unknown"
         subregion = detect_asia_subregion(title, source, url)
-        region = "ASIA" if subregion else stable_region(url)
+        if subregion:
+            region = "ASIA"
+        else:
+            subregion = detect_eu_subregion(title, source, url)
+            region = "EU" if subregion else stable_region(url)
         sentiment = stable_sentiment(url)
         articles.append(
             {
@@ -272,7 +340,7 @@ def aggregate_by_region(articles: list[dict[str, Any]]) -> list[dict[str, Any]]:
             )
 
     output: list[dict[str, Any]] = []
-    for region in [*REGIONS, *ASIA_SUBREGIONS]:
+    for region in [*REGIONS, *ASIA_SUBREGIONS, *EU_SUBREGIONS]:
         bucket = buckets[region]
         count = bucket["count"]
         average = round(bucket["sentiment_total"] / count, 2) if count else 0.0

@@ -220,7 +220,7 @@ input {
   background: rgba(255, 255, 255, 0.08);
 }
 
-.asia-tab-group {
+.expandable-tab-group {
   display: flex;
   align-items: stretch;
   gap: 10px;
@@ -228,21 +228,21 @@ input {
   transition: transform 0.18s ease;
 }
 
-.asia-tab-group.expanded {
+.expandable-tab-group.expanded {
   transform: translateX(0);
 }
 
-.asia-parent-tab {
+.expandable-parent-tab {
   position: relative;
   overflow: hidden;
 }
 
-.asia-parent-tab.expanded {
+.expandable-parent-tab.expanded {
   background:
     linear-gradient(90deg, rgba(245, 158, 11, 0.14), rgba(255, 255, 255, 0.04));
 }
 
-.asia-expand-icon {
+.expand-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -257,12 +257,12 @@ input {
     opacity 0.2s ease;
 }
 
-.asia-expand-icon.expanded {
+.expand-icon.expanded {
   opacity: 1;
   transform: rotate(180deg);
 }
 
-.asia-subtabs {
+.region-subtabs {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -281,12 +281,16 @@ input {
     padding 0.22s ease;
 }
 
-.asia-subtabs.expanded {
-  max-width: 520px;
+.region-subtabs.expanded {
+  max-width: 760px;
   opacity: 1;
   padding: 4px 8px 4px 10px;
   background: rgba(245, 158, 11, 0.06);
   transform: translateX(0);
+}
+
+.eu-subtabs.expanded {
+  background: rgba(59, 130, 246, 0.08);
 }
 
 .region-subtab {
@@ -311,6 +315,10 @@ input {
   border-radius: 999px;
   background: linear-gradient(90deg, rgba(245, 158, 11, 0.08), rgba(250, 204, 21, 0.03));
   pointer-events: none;
+}
+
+.eu-subtabs .subtab-glow {
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.1), rgba(125, 211, 252, 0.04));
 }
 
 .region-subtab > span,

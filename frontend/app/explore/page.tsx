@@ -9,8 +9,11 @@ type RegionArticle = {
   sentiment: number;
 };
 
+type BaseRegion = "US" | "EU" | "ASIA";
+type RegionCode = BaseRegion | "KR" | "CN" | "JP" | "TW" | "DE" | "UK" | "FR";
+
 type RegionSummary = {
-  region: "US" | "EU" | "ASIA" | "KR" | "CN" | "JP";
+  region: RegionCode;
   region_name: string;
   sentiment: number;
   count: number;
@@ -24,31 +27,44 @@ type HeatmapStock = {
   ticker: string;
   name: string;
   sector: string;
-  region: "US" | "EU" | "ASIA";
+  region: BaseRegion;
   change: number;
   marketCap: number;
   size: "lg" | "md" | "sm";
 };
 
-const BASE_REGIONS: Array<"US" | "EU" | "ASIA"> = ["US", "EU", "ASIA"];
-const ASIA_DETAIL_REGIONS: Array<"KR" | "CN" | "JP"> = ["KR", "CN", "JP"];
+const BASE_REGIONS: BaseRegion[] = ["US", "EU", "ASIA"];
+const ASIA_DETAIL_REGIONS: RegionCode[] = ["KR", "CN", "JP", "TW"];
+const EU_DETAIL_REGIONS: RegionCode[] = ["DE", "UK", "FR"];
+const DETAIL_REGIONS: Record<"ASIA" | "EU", RegionCode[]> = {
+  ASIA: ASIA_DETAIL_REGIONS,
+  EU: EU_DETAIL_REGIONS,
+};
 
-const regionLabels: Record<RegionSummary["region"], string> = {
+const regionLabels: Record<RegionCode, string> = {
   US: "🇺🇸 US",
   EU: "🇪🇺 EU",
   ASIA: "🌏 ASIA",
   KR: "🇰🇷 KR",
   CN: "🇨🇳 CN",
   JP: "🇯🇵 JP",
+  TW: "🇹🇼 TW",
+  DE: "🇩🇪 DE",
+  UK: "🇬🇧 UK",
+  FR: "🇫🇷 FR",
 };
 
-const regionPositions: Record<RegionSummary["region"], { top: string; left: string }> = {
+const regionPositions: Record<RegionCode, { top: string; left: string }> = {
   US: { top: "42%", left: "24%" },
   EU: { top: "33%", left: "53%" },
   ASIA: { top: "45%", left: "77%" },
   KR: { top: "39%", left: "83%" },
   CN: { top: "44%", left: "75%" },
   JP: { top: "34%", left: "87%" },
+  TW: { top: "41.5%", left: "79.5%" },
+  DE: { top: "33%", left: "56%" },
+  UK: { top: "29%", left: "50%" },
+  FR: { top: "38%", left: "52.5%" },
 };
 
 const heatmapStocks: HeatmapStock[] = [
@@ -120,8 +136,8 @@ const sectorOrder = [
   "Basic Materials",
 ];
 
-function getRegionMarketCap(region: RegionSummary["region"]) {
-  if (ASIA_DETAIL_REGIONS.includes(region as "KR" | "CN" | "JP")) {
+function getRegionMarketCap(region: RegionCode) {
+  if (ASIA_DETAIL_REGIONS.includes(region) || EU_DETAIL_REGIONS.includes(region)) {
     return 0;
   }
   return heatmapStocks
@@ -129,8 +145,18 @@ function getRegionMarketCap(region: RegionSummary["region"]) {
     .reduce((sum, stock) => sum + stock.marketCap, 0);
 }
 
-function isAsiaFamily(region: RegionSummary["region"]) {
-  return region === "ASIA" || ASIA_DETAIL_REGIONS.includes(region as "KR" | "CN" | "JP");
+function isAsiaFamily(region: RegionCode) {
+  return region === "ASIA" || ASIA_DETAIL_REGIONS.includes(region);
+}
+
+function isEuFamily(region: RegionCode) {
+  return region === "EU" || EU_DETAIL_REGIONS.includes(region);
+}
+
+function getParentRegion(region: RegionCode): BaseRegion {
+  if (isAsiaFamily(region)) return "ASIA";
+  if (isEuFamily(region)) return "EU";
+  return "US";
 }
 
 function sentimentLabel(score: number) {
@@ -169,8 +195,8 @@ function stockSizeClass(size: HeatmapStock["size"]) {
 
 export default function ExplorePage() {
   const [regions, setRegions] = useState<RegionSummary[]>([]);
-  const [selectedRegion, setSelectedRegion] = useState<RegionSummary["region"]>("EU");
-  const [asiaExpanded, setAsiaExpanded] = useState(false);
+  const [selectedRegion, setSelectedRegion] = useState<RegionCode>("EU");
+  const [expandedGroup, setExpandedGroup] = useState<"ASIA" | "EU" | null>(null);
   const [selectedTicker, setSelectedTicker] = useState("ASML");
   const [selectedSector, setSelectedSector] = useState("Technology");
   const [viewMode, setViewMode] = useState<ViewMode>("map");
@@ -189,7 +215,7 @@ export default function ExplorePage() {
         const payload = (await response.json()) as RegionSummary[];
         setRegions(payload);
         const baseRegionsOnly = payload.filter((item) =>
-          BASE_REGIONS.includes(item.region as "US" | "EU" | "ASIA"),
+          BASE_REGIONS.includes(item.region as BaseRegion),
         );
         const topMarketRegion = [...baseRegionsOnly].sort(
           (a, b) => getRegionMarketCap(b.region) - getRegionMarketCap(a.region),
@@ -209,19 +235,29 @@ export default function ExplorePage() {
   }, []);
 
   useEffect(() => {
-    if (viewMode === "chart" && isAsiaFamily(selectedRegion) && selectedRegion !== "ASIA") {
-      setSelectedRegion("ASIA");
+    if (viewMode !== "chart") {
+      return;
+    }
+
+    if (selectedRegion !== "US" && selectedRegion !== "EU" && selectedRegion !== "ASIA") {
+      setSelectedRegion(getParentRegion(selectedRegion));
     }
   }, [selectedRegion, viewMode]);
 
   useEffect(() => {
     if (viewMode === "chart") {
-      setAsiaExpanded(false);
+      setExpandedGroup(null);
       return;
     }
 
-    if (isAsiaFamily(selectedRegion)) {
-      setAsiaExpanded(true);
+    if (ASIA_DETAIL_REGIONS.includes(selectedRegion)) {
+      setExpandedGroup("ASIA");
+      return;
+    }
+
+    if (EU_DETAIL_REGIONS.includes(selectedRegion)) {
+      setExpandedGroup("EU");
+      return;
     }
   }, [selectedRegion, viewMode]);
 
@@ -253,7 +289,7 @@ export default function ExplorePage() {
   const sortedRegions = useMemo(
     () =>
       [...regions]
-        .filter((region) => BASE_REGIONS.includes(region.region as "US" | "EU" | "ASIA"))
+        .filter((region) => BASE_REGIONS.includes(region.region as BaseRegion))
         .sort((a, b) => getRegionMarketCap(b.region) - getRegionMarketCap(a.region)),
     [regions],
   );
@@ -261,33 +297,33 @@ export default function ExplorePage() {
   const articleSortedRegions = useMemo(
     () =>
       [...regions]
-        .filter((region) => BASE_REGIONS.includes(region.region as "US" | "EU" | "ASIA"))
+        .filter((region) => BASE_REGIONS.includes(region.region as BaseRegion))
         .sort((a, b) => b.count - a.count),
     [regions],
   );
 
-  const asiaDetailRegions = useMemo(
-    () =>
-      ASIA_DETAIL_REGIONS.map((code) => mapRegionLookup.get(code))
+  const detailRegionsByGroup = useMemo(
+    () => ({
+      ASIA: DETAIL_REGIONS.ASIA.map((code) => mapRegionLookup.get(code))
         .filter((region): region is RegionSummary => Boolean(region))
         .sort((a, b) => b.count - a.count),
+      EU: DETAIL_REGIONS.EU.map((code) => mapRegionLookup.get(code))
+        .filter((region): region is RegionSummary => Boolean(region))
+        .sort((a, b) => b.count - a.count),
+    }),
     [mapRegionLookup],
   );
-
-  const visibleMapTabs = useMemo(() => {
-    return articleSortedRegions;
-  }, [articleSortedRegions, asiaDetailRegions, selectedRegion]);
 
   const visibleMapMarkers = useMemo(() => {
     const baseMarkers = BASE_REGIONS.map((code) => mapRegionLookup.get(code))
       .filter((region): region is RegionSummary => Boolean(region));
 
-    if (!asiaExpanded) {
+    if (!expandedGroup) {
       return baseMarkers;
     }
 
-    return [...baseMarkers, ...asiaDetailRegions];
-  }, [mapRegionLookup, asiaDetailRegions, asiaExpanded]);
+    return [...baseMarkers, ...detailRegionsByGroup[expandedGroup]];
+  }, [mapRegionLookup, detailRegionsByGroup, expandedGroup]);
 
   const regionStocks = useMemo(
     () => heatmapStocks.filter((stock) => stock.region === selectedRegion),
@@ -318,6 +354,107 @@ export default function ExplorePage() {
     () => filteredRegionStocks.find((stock) => stock.ticker === selectedTicker) ?? filteredRegionStocks[0] ?? regionStocks[0],
     [filteredRegionStocks, regionStocks, selectedTicker],
   );
+
+  function toggleGroup(group: "ASIA" | "EU") {
+    const isExpanded = expandedGroup === group;
+    if (isExpanded) {
+      setExpandedGroup(null);
+      setSelectedRegion(group);
+      return;
+    }
+
+    setExpandedGroup(group);
+    setSelectedRegion(group);
+  }
+
+  function selectRegion(region: RegionCode) {
+    if (viewMode === "chart") {
+      setExpandedGroup(null);
+      setSelectedRegion(getParentRegion(region));
+      return;
+    }
+
+    if (region === "ASIA" || region === "EU") {
+      toggleGroup(region);
+      return;
+    }
+
+    if (isAsiaFamily(region)) {
+      setExpandedGroup("ASIA");
+      setSelectedRegion(region);
+      return;
+    }
+
+    if (isEuFamily(region)) {
+      setExpandedGroup("EU");
+      setSelectedRegion(region);
+      return;
+    }
+
+    setExpandedGroup(null);
+    setSelectedRegion(region);
+  }
+
+  function renderMapRegionTab(region: RegionSummary) {
+    if (region.region !== "ASIA" && region.region !== "EU") {
+      return (
+        <button
+          key={region.region}
+          type="button"
+          className={`region-tab ${region.region === selectedRegion ? "active" : ""}`}
+          onClick={() => selectRegion(region.region)}
+          style={{
+            borderColor: region.region === selectedRegion ? region.color : "rgba(255,255,255,0.08)",
+          }}
+        >
+          <span>{regionLabels[region.region]}</span>
+          <strong>{region.count} articles</strong>
+        </button>
+      );
+    }
+
+    const group = region.region;
+    const expanded = expandedGroup === group;
+    const detailRegions = detailRegionsByGroup[group];
+
+    return (
+      <div key={`${group}-group`} className={`expandable-tab-group ${expanded ? "expanded" : ""}`}>
+        <button
+          type="button"
+          className={`region-tab expandable-parent-tab ${
+            region.region === selectedRegion ? "active" : ""
+          } ${expanded ? "expanded" : ""}`}
+          onClick={() => toggleGroup(group)}
+          style={{
+            borderColor: region.region === selectedRegion ? region.color : "rgba(255,255,255,0.08)",
+          }}
+        >
+          <span>{regionLabels[region.region]}</span>
+          <strong>{region.count} articles</strong>
+          <span className={`expand-icon ${expanded ? "expanded" : ""}`}>›</span>
+        </button>
+
+        <div className={`region-subtabs ${expanded ? "expanded" : ""} ${group.toLowerCase()}-subtabs`}>
+          {detailRegions.map((subregion) => (
+            <button
+              key={subregion.region}
+              type="button"
+              className={`region-tab region-subtab ${subregion.region === selectedRegion ? "active" : ""}`}
+              onClick={() => selectRegion(subregion.region)}
+              style={{
+                borderColor:
+                  subregion.region === selectedRegion ? subregion.color : "rgba(255,255,255,0.08)",
+              }}
+            >
+              <span className="subtab-glow" />
+              <span>{regionLabels[subregion.region]}</span>
+              <strong>{subregion.count} articles</strong>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <main className="explore-page">
@@ -379,91 +516,7 @@ export default function ExplorePage() {
                         <strong>{Math.round(getRegionMarketCap(region.region))}B mcap</strong>
                       </button>
                     ))
-                  : visibleMapTabs.map((region) => {
-                      if (region.region === "ASIA") {
-                        const expanded = asiaExpanded;
-
-                        return (
-                          <div
-                            key="asia-group"
-                            className={`asia-tab-group ${expanded ? "expanded" : ""}`}
-                          >
-                            <button
-                              type="button"
-                              className={`region-tab asia-parent-tab ${
-                                region.region === selectedRegion ? "active" : ""
-                              } ${expanded ? "expanded" : ""}`}
-                              onClick={() => {
-                                if (expanded) {
-                                  setAsiaExpanded(false);
-                                  setSelectedRegion("ASIA");
-                                } else {
-                                  setAsiaExpanded(true);
-                                  setSelectedRegion("ASIA");
-                                }
-                              }}
-                              style={{
-                                borderColor:
-                                  region.region === selectedRegion
-                                    ? region.color
-                                    : "rgba(255,255,255,0.08)",
-                              }}
-                            >
-                              <span>{regionLabels[region.region]}</span>
-                              <strong>{region.count} articles</strong>
-                              <span className={`asia-expand-icon ${expanded ? "expanded" : ""}`}>
-                                ›
-                              </span>
-                            </button>
-
-                            <div className={`asia-subtabs ${expanded ? "expanded" : ""}`}>
-                              {asiaDetailRegions.map((subregion) => (
-                                <button
-                                  key={subregion.region}
-                                  type="button"
-                                  className={`region-tab region-subtab ${
-                                    subregion.region === selectedRegion ? "active" : ""
-                                  }`}
-                                  onClick={() => {
-                                    setAsiaExpanded(true);
-                                    setSelectedRegion(subregion.region);
-                                  }}
-                                  style={{
-                                    borderColor:
-                                      subregion.region === selectedRegion
-                                        ? subregion.color
-                                        : "rgba(255,255,255,0.08)",
-                                  }}
-                                >
-                                  <span className="subtab-glow" />
-                                  <span>{regionLabels[subregion.region]}</span>
-                                  <strong>{subregion.count} articles</strong>
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      }
-
-                      return (
-                        <button
-                          key={region.region}
-                          type="button"
-                          className={`region-tab ${region.region === selectedRegion ? "active" : ""}`}
-                          onClick={() => {
-                            setAsiaExpanded(false);
-                            setSelectedRegion(region.region);
-                          }}
-                          style={{
-                            borderColor:
-                              region.region === selectedRegion ? region.color : "rgba(255,255,255,0.08)",
-                          }}
-                        >
-                          <span>{regionLabels[region.region]}</span>
-                          <strong>{region.count} articles</strong>
-                        </button>
-                      );
-                    })}
+                  : articleSortedRegions.map((region) => renderMapRegionTab(region))}
               </div>
 
               {viewMode === "map" ? (
@@ -491,7 +544,7 @@ export default function ExplorePage() {
                         className="map-shape europe"
                         style={{
                           background:
-                            activeRegion?.region === "EU"
+                            isEuFamily(activeRegion?.region ?? "EU")
                               ? sentimentBackground(activeRegion.sentiment)
                               : "rgba(56, 189, 248, 0.14)",
                         }}
@@ -511,7 +564,7 @@ export default function ExplorePage() {
                           key={region.region}
                           type="button"
                           className={`map-marker ${region.region === selectedRegion ? "active" : ""}`}
-                          onClick={() => setSelectedRegion(region.region)}
+                          onClick={() => selectRegion(region.region)}
                           style={{
                             top: regionPositions[region.region].top,
                             left: regionPositions[region.region].left,
@@ -534,19 +587,12 @@ export default function ExplorePage() {
                     </div>
 
                     <div className="bottom-summary">
-                      {(asiaExpanded ? visibleMapMarkers : articleSortedRegions).map((region) => (
+                      {(expandedGroup ? visibleMapMarkers : articleSortedRegions).map((region) => (
                         <button
                           key={region.region}
                           type="button"
                           className={`summary-card ${region.region === selectedRegion ? "active" : ""}`}
-                          onClick={() => {
-                            if (isAsiaFamily(region.region)) {
-                              setAsiaExpanded(true);
-                            } else {
-                              setAsiaExpanded(false);
-                            }
-                            setSelectedRegion(region.region);
-                          }}
+                          onClick={() => selectRegion(region.region)}
                         >
                           <span>{region.region_name}</span>
                           <strong>
