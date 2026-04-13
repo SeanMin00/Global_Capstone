@@ -195,12 +195,14 @@ input {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  align-items: flex-start;
 }
 
 .region-tab {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-height: 56px;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.03);
@@ -216,6 +218,105 @@ input {
 
 .region-tab.active {
   background: rgba(255, 255, 255, 0.08);
+}
+
+.asia-tab-group {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  flex: 0 0 auto;
+  transition: transform 0.18s ease;
+}
+
+.asia-tab-group.expanded {
+  transform: translateX(0);
+}
+
+.asia-parent-tab {
+  position: relative;
+  overflow: hidden;
+}
+
+.asia-parent-tab.expanded {
+  background:
+    linear-gradient(90deg, rgba(245, 158, 11, 0.14), rgba(255, 255, 255, 0.04));
+}
+
+.asia-expand-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  margin-left: 2px;
+  color: #f8fafc;
+  font-size: 1rem;
+  opacity: 0.66;
+  transform: rotate(90deg);
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.asia-expand-icon.expanded {
+  opacity: 1;
+  transform: rotate(180deg);
+}
+
+.asia-subtabs {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  padding: 0;
+  border-radius: 999px;
+  background: transparent;
+  transform: translateX(-10px);
+  transition:
+    max-width 0.32s ease,
+    opacity 0.22s ease,
+    transform 0.22s ease,
+    background 0.22s ease,
+    padding 0.22s ease;
+}
+
+.asia-subtabs.expanded {
+  max-width: 520px;
+  opacity: 1;
+  padding: 4px 8px 4px 10px;
+  background: rgba(245, 158, 11, 0.06);
+  transform: translateX(0);
+}
+
+.region-subtab {
+  position: relative;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.region-subtab::before {
+  content: "";
+  position: absolute;
+  left: -7px;
+  top: 50%;
+  width: 6px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.16);
+  transform: translateY(-50%);
+}
+
+.subtab-glow {
+  position: absolute;
+  inset: 4px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.08), rgba(250, 204, 21, 0.03));
+  pointer-events: none;
+}
+
+.region-subtab > span,
+.region-subtab > strong {
+  position: relative;
+  z-index: 1;
 }
 
 .explore-grid {
