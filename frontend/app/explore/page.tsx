@@ -28,6 +28,7 @@ type HeatmapStock = {
   name: string;
   sector: string;
   region: BaseRegion;
+  detailRegion?: Exclude<RegionCode, BaseRegion>;
   change: number;
   marketCap: number;
   size: "lg" | "md" | "sm";
@@ -73,15 +74,15 @@ const heatmapStocks: HeatmapStock[] = [
   { ticker: "NVDA", name: "NVIDIA", sector: "Technology", region: "US", change: 3.28, marketCap: 2650, size: "lg" },
   { ticker: "JPM", name: "JPMorgan", sector: "Financial", region: "US", change: -0.74, marketCap: 620, size: "md" },
   { ticker: "XOM", name: "Exxon", sector: "Energy", region: "US", change: -1.81, marketCap: 510, size: "md" },
-  { ticker: "SAP", name: "SAP", sector: "Technology", region: "EU", change: 1.26, marketCap: 250, size: "lg" },
+  { ticker: "SAP", name: "SAP", sector: "Technology", region: "EU", detailRegion: "DE", change: 1.26, marketCap: 250, size: "lg" },
   { ticker: "ASML", name: "ASML", sector: "Technology", region: "EU", change: 2.02, marketCap: 390, size: "lg" },
-  { ticker: "SIE", name: "Siemens", sector: "Industrials", region: "EU", change: -0.62, marketCap: 150, size: "md" },
-  { ticker: "MC", name: "LVMH", sector: "Consumer Cyclical", region: "EU", change: 0.41, marketCap: 360, size: "md" },
-  { ticker: "BP", name: "BP", sector: "Energy", region: "EU", change: -1.22, marketCap: 120, size: "sm" },
-  { ticker: "TSM", name: "TSMC", sector: "Technology", region: "ASIA", change: 2.84, marketCap: 890, size: "lg" },
-  { ticker: "SONY", name: "Sony", sector: "Consumer Cyclical", region: "ASIA", change: 0.93, marketCap: 150, size: "md" },
-  { ticker: "BABA", name: "Alibaba", sector: "Consumer Cyclical", region: "ASIA", change: -2.17, marketCap: 210, size: "lg" },
-  { ticker: "005930", name: "Samsung", sector: "Technology", region: "ASIA", change: 1.73, marketCap: 420, size: "lg" },
+  { ticker: "SIE", name: "Siemens", sector: "Industrials", region: "EU", detailRegion: "DE", change: -0.62, marketCap: 150, size: "md" },
+  { ticker: "MC", name: "LVMH", sector: "Consumer Cyclical", region: "EU", detailRegion: "FR", change: 0.41, marketCap: 360, size: "md" },
+  { ticker: "BP", name: "BP", sector: "Energy", region: "EU", detailRegion: "UK", change: -1.22, marketCap: 120, size: "sm" },
+  { ticker: "TSM", name: "TSMC", sector: "Technology", region: "ASIA", detailRegion: "TW", change: 2.84, marketCap: 890, size: "lg" },
+  { ticker: "SONY", name: "Sony", sector: "Consumer Cyclical", region: "ASIA", detailRegion: "JP", change: 0.93, marketCap: 150, size: "md" },
+  { ticker: "BABA", name: "Alibaba", sector: "Consumer Cyclical", region: "ASIA", detailRegion: "CN", change: -2.17, marketCap: 210, size: "lg" },
+  { ticker: "005930", name: "Samsung", sector: "Technology", region: "ASIA", detailRegion: "KR", change: 1.73, marketCap: 420, size: "lg" },
   { ticker: "HDB", name: "HDFC Bank", sector: "Financial", region: "ASIA", change: -0.38, marketCap: 145, size: "sm" },
   { ticker: "GOOG", name: "Alphabet", sector: "Communication Services", region: "US", change: 1.12, marketCap: 2150, size: "lg" },
   { ticker: "META", name: "Meta", sector: "Communication Services", region: "US", change: -0.61, marketCap: 1320, size: "md" },
@@ -97,29 +98,29 @@ const heatmapStocks: HeatmapStock[] = [
   { ticker: "AMT", name: "American Tower", sector: "Real Estate", region: "US", change: -0.41, marketCap: 95, size: "sm" },
   { ticker: "NEE", name: "NextEra", sector: "Utilities", region: "US", change: 0.23, marketCap: 145, size: "sm" },
   { ticker: "DUK", name: "Duke Energy", sector: "Utilities", region: "US", change: -0.18, marketCap: 85, size: "sm" },
-  { ticker: "LIN", name: "Linde", sector: "Basic Materials", region: "EU", change: 0.96, marketCap: 210, size: "md" },
-  { ticker: "RIO", name: "Rio Tinto", sector: "Basic Materials", region: "EU", change: -1.09, marketCap: 115, size: "md" },
-  { ticker: "BNP", name: "BNP Paribas", sector: "Financial", region: "EU", change: -0.34, marketCap: 90, size: "md" },
-  { ticker: "ADS", name: "Adidas", sector: "Consumer Cyclical", region: "EU", change: 0.67, marketCap: 45, size: "sm" },
+  { ticker: "LIN", name: "Linde", sector: "Basic Materials", region: "EU", detailRegion: "DE", change: 0.96, marketCap: 210, size: "md" },
+  { ticker: "RIO", name: "Rio Tinto", sector: "Basic Materials", region: "EU", detailRegion: "UK", change: -1.09, marketCap: 115, size: "md" },
+  { ticker: "BNP", name: "BNP Paribas", sector: "Financial", region: "EU", detailRegion: "FR", change: -0.34, marketCap: 90, size: "md" },
+  { ticker: "ADS", name: "Adidas", sector: "Consumer Cyclical", region: "EU", detailRegion: "DE", change: 0.67, marketCap: 45, size: "sm" },
   { ticker: "NESN", name: "Nestle", sector: "Consumer Defensive", region: "EU", change: -0.22, marketCap: 310, size: "sm" },
   { ticker: "NVO", name: "Novo Nordisk", sector: "Healthcare", region: "EU", change: 1.81, marketCap: 570, size: "lg" },
   { ticker: "ENEL", name: "Enel", sector: "Utilities", region: "EU", change: 0.12, marketCap: 70, size: "sm" },
-  { ticker: "SU", name: "Schneider", sector: "Industrials", region: "EU", change: 0.58, marketCap: 130, size: "sm" },
-  { ticker: "REL", name: "Relx", sector: "Communication Services", region: "EU", change: 0.35, marketCap: 78, size: "sm" },
-  { ticker: "AIR", name: "Airbus", sector: "Industrials", region: "EU", change: -0.87, marketCap: 120, size: "md" },
-  { ticker: "PTR", name: "PetroChina", sector: "Energy", region: "ASIA", change: 0.66, marketCap: 165, size: "md" },
-  { ticker: "7203", name: "Toyota", sector: "Consumer Cyclical", region: "ASIA", change: 1.06, marketCap: 320, size: "lg" },
-  { ticker: "9984", name: "SoftBank", sector: "Communication Services", region: "ASIA", change: -0.93, marketCap: 95, size: "md" },
-  { ticker: "6861", name: "Keyence", sector: "Technology", region: "ASIA", change: 1.24, marketCap: 130, size: "md" },
-  { ticker: "1398", name: "ICBC", sector: "Financial", region: "ASIA", change: 0.28, marketCap: 220, size: "sm" },
-  { ticker: "KHC", name: "Hengan", sector: "Consumer Defensive", region: "ASIA", change: -0.14, marketCap: 35, size: "sm" },
-  { ticker: "2317", name: "Foxconn", sector: "Industrials", region: "ASIA", change: 0.77, marketCap: 85, size: "md" },
-  { ticker: "0883", name: "CNOOC", sector: "Energy", region: "ASIA", change: -1.36, marketCap: 145, size: "sm" },
-  { ticker: "3988", name: "Bank of China", sector: "Financial", region: "ASIA", change: 0.18, marketCap: 150, size: "sm" },
-  { ticker: "9618", name: "JD.com", sector: "Consumer Cyclical", region: "ASIA", change: -1.11, marketCap: 55, size: "md" },
-  { ticker: "HMC", name: "Honda", sector: "Consumer Cyclical", region: "ASIA", change: 0.54, marketCap: 55, size: "sm" },
-  { ticker: "4704", name: "Trend Micro", sector: "Technology", region: "ASIA", change: 0.49, marketCap: 35, size: "sm" },
-  { ticker: "TCL", name: "TCL Zhonghuan", sector: "Basic Materials", region: "ASIA", change: -0.43, marketCap: 24, size: "sm" },
+  { ticker: "SU", name: "Schneider", sector: "Industrials", region: "EU", detailRegion: "FR", change: 0.58, marketCap: 130, size: "sm" },
+  { ticker: "REL", name: "Relx", sector: "Communication Services", region: "EU", detailRegion: "UK", change: 0.35, marketCap: 78, size: "sm" },
+  { ticker: "AIR", name: "Airbus", sector: "Industrials", region: "EU", detailRegion: "FR", change: -0.87, marketCap: 120, size: "md" },
+  { ticker: "PTR", name: "PetroChina", sector: "Energy", region: "ASIA", detailRegion: "CN", change: 0.66, marketCap: 165, size: "md" },
+  { ticker: "7203", name: "Toyota", sector: "Consumer Cyclical", region: "ASIA", detailRegion: "JP", change: 1.06, marketCap: 320, size: "lg" },
+  { ticker: "9984", name: "SoftBank", sector: "Communication Services", region: "ASIA", detailRegion: "JP", change: -0.93, marketCap: 95, size: "md" },
+  { ticker: "6861", name: "Keyence", sector: "Technology", region: "ASIA", detailRegion: "JP", change: 1.24, marketCap: 130, size: "md" },
+  { ticker: "1398", name: "ICBC", sector: "Financial", region: "ASIA", detailRegion: "CN", change: 0.28, marketCap: 220, size: "sm" },
+  { ticker: "KHC", name: "Hengan", sector: "Consumer Defensive", region: "ASIA", detailRegion: "CN", change: -0.14, marketCap: 35, size: "sm" },
+  { ticker: "2317", name: "Foxconn", sector: "Industrials", region: "ASIA", detailRegion: "TW", change: 0.77, marketCap: 85, size: "md" },
+  { ticker: "0883", name: "CNOOC", sector: "Energy", region: "ASIA", detailRegion: "CN", change: -1.36, marketCap: 145, size: "sm" },
+  { ticker: "3988", name: "Bank of China", sector: "Financial", region: "ASIA", detailRegion: "CN", change: 0.18, marketCap: 150, size: "sm" },
+  { ticker: "9618", name: "JD.com", sector: "Consumer Cyclical", region: "ASIA", detailRegion: "CN", change: -1.11, marketCap: 55, size: "md" },
+  { ticker: "HMC", name: "Honda", sector: "Consumer Cyclical", region: "ASIA", detailRegion: "JP", change: 0.54, marketCap: 55, size: "sm" },
+  { ticker: "4704", name: "Trend Micro", sector: "Technology", region: "ASIA", detailRegion: "JP", change: 0.49, marketCap: 35, size: "sm" },
+  { ticker: "TCL", name: "TCL Zhonghuan", sector: "Basic Materials", region: "ASIA", detailRegion: "CN", change: -0.43, marketCap: 24, size: "sm" },
 ];
 
 const sectorOrder = [
@@ -138,7 +139,9 @@ const sectorOrder = [
 
 function getRegionMarketCap(region: RegionCode) {
   if (ASIA_DETAIL_REGIONS.includes(region) || EU_DETAIL_REGIONS.includes(region)) {
-    return 0;
+    return heatmapStocks
+      .filter((stock) => stock.detailRegion === region)
+      .reduce((sum, stock) => sum + stock.marketCap, 0);
   }
   return heatmapStocks
     .filter((stock) => stock.region === region)
@@ -191,6 +194,20 @@ function stockSizeClass(size: HeatmapStock["size"]) {
   if (size === "lg") return "heat-tile-lg";
   if (size === "md") return "heat-tile-md";
   return "heat-tile-sm";
+}
+
+function scaleBubbleSize(value: number, minValue: number, maxValue: number, minSize: number, maxSize: number) {
+  if (value <= 0) {
+    return minSize;
+  }
+
+  if (maxValue <= minValue) {
+    return (minSize + maxSize) / 2;
+  }
+
+  const normalized =
+    (Math.sqrt(value) - Math.sqrt(minValue)) / (Math.sqrt(maxValue) - Math.sqrt(minValue));
+  return Math.round(minSize + normalized * (maxSize - minSize));
 }
 
 export default function ExplorePage() {
@@ -324,6 +341,50 @@ export default function ExplorePage() {
 
     return [...baseMarkers, ...detailRegionsByGroup[expandedGroup]];
   }, [mapRegionLookup, detailRegionsByGroup, expandedGroup]);
+
+  const mapBubbleMetrics = useMemo(() => {
+    const baseCaps = BASE_REGIONS.map((code) => ({
+      region: code,
+      marketCap: getRegionMarketCap(code),
+    })).filter((item) => item.marketCap > 0);
+
+    const detailCaps =
+      expandedGroup === null
+        ? []
+        : detailRegionsByGroup[expandedGroup].map((region) => ({
+            region: region.region,
+            marketCap: getRegionMarketCap(region.region),
+          }));
+
+    const baseMin = Math.min(...baseCaps.map((item) => item.marketCap));
+    const baseMax = Math.max(...baseCaps.map((item) => item.marketCap));
+    const detailPositiveCaps = detailCaps.filter((item) => item.marketCap > 0);
+    const detailMin = detailPositiveCaps.length
+      ? Math.min(...detailPositiveCaps.map((item) => item.marketCap))
+      : 0;
+    const detailMax = detailPositiveCaps.length
+      ? Math.max(...detailPositiveCaps.map((item) => item.marketCap))
+      : 0;
+
+    return new Map(
+      visibleMapMarkers.map((region) => {
+        const marketCap = getRegionMarketCap(region.region);
+        const isBaseRegion = BASE_REGIONS.includes(region.region as BaseRegion);
+        const size = isBaseRegion
+          ? scaleBubbleSize(marketCap, baseMin, baseMax, 220, 420)
+          : scaleBubbleSize(marketCap, detailMin, detailMax, 72, 152);
+
+        return [
+          region.region,
+          {
+            marketCap,
+            size,
+            isBaseRegion,
+          },
+        ];
+      }),
+    );
+  }, [detailRegionsByGroup, expandedGroup, visibleMapMarkers]);
 
   const regionStocks = useMemo(
     () => heatmapStocks.filter((stock) => stock.region === selectedRegion),
@@ -531,33 +592,38 @@ export default function ExplorePage() {
                     </div>
 
                     <div className="map-stage">
-                      <div
-                        className="map-shape north-america"
-                        style={{
-                          background:
-                            activeRegion?.region === "US"
-                              ? sentimentBackground(activeRegion.sentiment)
-                              : "rgba(56, 189, 248, 0.14)",
-                        }}
-                      />
-                      <div
-                        className="map-shape europe"
-                        style={{
-                          background:
-                            isEuFamily(activeRegion?.region ?? "EU")
-                              ? sentimentBackground(activeRegion.sentiment)
-                              : "rgba(56, 189, 248, 0.14)",
-                        }}
-                      />
-                      <div
-                        className="map-shape asia"
-                        style={{
-                          background:
-                            isAsiaFamily(activeRegion?.region ?? "ASIA")
-                              ? sentimentBackground(activeRegion.sentiment)
-                              : "rgba(56, 189, 248, 0.14)",
-                        }}
-                      />
+                      {visibleMapMarkers.map((region) => {
+                        const bubble = mapBubbleMetrics.get(region.region);
+                        if (!bubble) {
+                          return null;
+                        }
+
+                        return (
+                          <div
+                            key={`${region.region}-bubble`}
+                            className={`map-bubble ${bubble.isBaseRegion ? "base-bubble" : "detail-bubble"} ${
+                              region.region === selectedRegion ? "active" : ""
+                            }`}
+                            style={{
+                              top: regionPositions[region.region].top,
+                              left: regionPositions[region.region].left,
+                              width: `${bubble.size}px`,
+                              height: `${bubble.size}px`,
+                              background: sentimentBackground(region.sentiment),
+                              borderColor:
+                                region.region === selectedRegion
+                                  ? "rgba(255,255,255,0.2)"
+                                  : "rgba(56, 189, 248, 0.16)",
+                              boxShadow:
+                                region.region === selectedRegion
+                                  ? "0 0 0 1px rgba(255,255,255,0.08), 0 30px 80px rgba(0,0,0,0.24), inset 0 0 60px rgba(255,255,255,0.05)"
+                                  : "0 22px 60px rgba(0,0,0,0.16), inset 0 0 40px rgba(255,255,255,0.04)",
+                            }}
+                          >
+                            <span className="bubble-cap">{Math.round(bubble.marketCap)}B</span>
+                          </div>
+                        );
+                      })}
 
                       {visibleMapMarkers.map((region) => (
                         <button
@@ -596,7 +662,8 @@ export default function ExplorePage() {
                         >
                           <span>{region.region_name}</span>
                           <strong>
-                            Sentiment: {region.sentiment.toFixed(2)} ({region.count})
+                            Mcap: {Math.round(getRegionMarketCap(region.region))}B · Sentiment:{" "}
+                            {region.sentiment.toFixed(2)}
                           </strong>
                         </button>
                       ))}
@@ -631,6 +698,10 @@ export default function ExplorePage() {
                           <div className="metric-box">
                             <span>Sentiment</span>
                             <strong>{activeRegion.sentiment.toFixed(2)}</strong>
+                          </div>
+                          <div className="metric-box">
+                            <span>Market cap</span>
+                            <strong>{Math.round(getRegionMarketCap(activeRegion.region))}B</strong>
                           </div>
                           <div className="metric-box">
                             <span>Articles</span>

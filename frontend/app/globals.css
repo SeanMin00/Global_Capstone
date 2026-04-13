@@ -524,35 +524,45 @@ input {
   font-size: 1.25rem;
 }
 
-.map-shape {
+.map-bubble {
   position: absolute;
-  border: 1px solid rgba(34, 211, 238, 0.2);
-  background: rgba(56, 189, 248, 0.14);
-  box-shadow: 0 0 30px rgba(34, 211, 238, 0.08) inset;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  transform: translate(-50%, -50%);
+  border: 1px solid rgba(34, 211, 238, 0.18);
+  border-radius: 999px;
+  padding: 18px;
+  pointer-events: none;
+  backdrop-filter: blur(3px);
+  z-index: 1;
+  transition:
+    width 0.22s ease,
+    height 0.22s ease,
+    opacity 0.18s ease,
+    transform 0.18s ease;
 }
 
-.map-shape.north-america {
-  top: 18%;
-  left: 9%;
-  width: 260px;
-  height: 160px;
-  border-radius: 46% 54% 48% 52%;
+.map-bubble.base-bubble {
+  opacity: 0.92;
 }
 
-.map-shape.europe {
-  top: 20%;
-  left: 45%;
-  width: 130px;
-  height: 110px;
-  border-radius: 48% 52% 45% 55%;
+.map-bubble.detail-bubble {
+  opacity: 0.86;
 }
 
-.map-shape.asia {
-  top: 16%;
-  left: 62%;
-  width: 280px;
-  height: 200px;
-  border-radius: 44% 56% 48% 52%;
+.map-bubble.active {
+  transform: translate(-50%, -50%) scale(1.02);
+}
+
+.bubble-cap {
+  border-radius: 999px;
+  background: rgba(5, 9, 18, 0.46);
+  padding: 6px 10px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
 }
 
 .map-marker {
@@ -562,6 +572,7 @@ input {
   border: 0;
   color: var(--text);
   cursor: pointer;
+  z-index: 3;
 }
 
 .marker-glow {
@@ -597,6 +608,7 @@ input {
   padding: 10px 12px;
   text-align: left;
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.3);
+  z-index: 4;
 }
 
 .marker-label strong {
@@ -660,7 +672,7 @@ input {
 
 .news-metrics {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 10px;
   margin-top: 16px;
 }
