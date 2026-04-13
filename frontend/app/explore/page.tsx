@@ -47,6 +47,9 @@ type MarketRiskSnapshot = {
 };
 
 type ViewMode = "map" | "chart" | "pf" | "personal";
+type ChartMode = "heatmap" | "structure";
+type StructureViewMode = "country" | "segment";
+type TrendType = "Reactive" | "Structural";
 
 type HeatmapStock = {
   ticker: string;
@@ -57,6 +60,39 @@ type HeatmapStock = {
   change: number;
   marketCap: number;
   size: "lg" | "md" | "sm";
+};
+
+type StructureSegment = {
+  segment: string;
+  trendType: TrendType;
+  trendSummary: string;
+  avgMarketCap: number;
+  avgRoi1Y: number;
+  companies: {
+    name: string;
+    ticker: string;
+    marketCap: number;
+    roi1Y: number;
+    note: string;
+  }[];
+};
+
+type AggregatedSegment = {
+  segment: string;
+  trendType: TrendType;
+  trendSummary: string;
+  avgMarketCap: number;
+  avgRoi1Y: number;
+  countryCount: number;
+  countries: Exclude<RegionCode, BaseRegion>[];
+  companies: {
+    name: string;
+    ticker: string;
+    marketCap: number;
+    roi1Y: number;
+    note: string;
+    country: Exclude<RegionCode, BaseRegion>;
+  }[];
 };
 
 const BASE_REGIONS: BaseRegion[] = ["NA", "EU", "ASIA"];
@@ -203,6 +239,465 @@ const heatmapStocks: HeatmapStock[] = [
   { ticker: "4704", name: "Trend Micro", sector: "Technology", region: "ASIA", detailRegion: "JP", change: 0.49, marketCap: 35, size: "sm" },
   { ticker: "TCL", name: "TCL Zhonghuan", sector: "Basic Materials", region: "ASIA", detailRegion: "CN", change: -0.43, marketCap: 24, size: "sm" },
 ];
+
+const structureData: Partial<Record<Exclude<RegionCode, BaseRegion>, StructureSegment[]>> = {
+  US: [
+    {
+      segment: "Big Tech",
+      trendType: "Structural",
+      trendSummary: "Cloud, AI, and platform capex remain the dominant long-cycle driver.",
+      avgMarketCap: 2800,
+      avgRoi1Y: 24,
+      companies: [
+        { name: "Apple", ticker: "AAPL", marketCap: 2950, roi1Y: 18, note: "Hardware ecosystem and services base." },
+        { name: "Microsoft", ticker: "MSFT", marketCap: 3150, roi1Y: 27, note: "AI infrastructure and enterprise software leader." },
+        { name: "NVIDIA", ticker: "NVDA", marketCap: 2650, roi1Y: 29, note: "Core beneficiary of AI accelerator demand." },
+      ],
+    },
+    {
+      segment: "Consumer Platforms",
+      trendType: "Reactive",
+      trendSummary: "Ad demand, discretionary spending, and logistics updates move this basket quickly.",
+      avgMarketCap: 1760,
+      avgRoi1Y: 16,
+      companies: [
+        { name: "Amazon", ticker: "AMZN", marketCap: 1960, roi1Y: 21, note: "Retail scale plus AWS margin sensitivity." },
+        { name: "Meta", ticker: "META", marketCap: 1320, roi1Y: 11, note: "Ad cycle and engagement trends matter most." },
+        { name: "Walmart", ticker: "WMT", marketCap: 540, roi1Y: 16, note: "Consumer resilience proxy with defensive tilt." },
+      ],
+    },
+    {
+      segment: "Healthcare",
+      trendType: "Structural",
+      trendSummary: "Drug pipelines and aging demographics make this a durable longer-term segment.",
+      avgMarketCap: 575,
+      avgRoi1Y: 15,
+      companies: [
+        { name: "Eli Lilly", ticker: "LLY", marketCap: 770, roi1Y: 25, note: "Obesity and pharma pipeline leadership." },
+        { name: "Johnson & Johnson", ticker: "JNJ", marketCap: 380, roi1Y: 8, note: "Defensive healthcare quality name." },
+        { name: "AbbVie", ticker: "ABBV", marketCap: 575, roi1Y: 12, note: "Cash generation and drug franchise depth." },
+      ],
+    },
+  ],
+  CA: [
+    {
+      segment: "Banking",
+      trendType: "Reactive",
+      trendSummary: "Rate expectations and housing sensitivity keep Canadian banks event-driven.",
+      avgMarketCap: 110,
+      avgRoi1Y: 13,
+      companies: [
+        { name: "Royal Bank of Canada", ticker: "RY", marketCap: 155, roi1Y: 14, note: "Scale leader across domestic banking and wealth." },
+        { name: "TD Bank", ticker: "TD", marketCap: 105, roi1Y: 10, note: "North American retail footprint." },
+        { name: "Bank of Montreal", ticker: "BMO", marketCap: 70, roi1Y: 14, note: "Balanced commercial and consumer exposure." },
+      ],
+    },
+    {
+      segment: "Energy",
+      trendType: "Reactive",
+      trendSummary: "Oil and pipeline headlines still dominate short-run market reactions.",
+      avgMarketCap: 62,
+      avgRoi1Y: 17,
+      companies: [
+        { name: "Suncor", ticker: "SU", marketCap: 55, roi1Y: 15, note: "Integrated oil sands exposure." },
+        { name: "Canadian Natural", ticker: "CNQ", marketCap: 85, roi1Y: 18, note: "Large upstream producer." },
+        { name: "Cenovus", ticker: "CVE", marketCap: 46, roi1Y: 17, note: "Heavy oil and refining leverage." },
+      ],
+    },
+    {
+      segment: "Technology",
+      trendType: "Structural",
+      trendSummary: "Canada's tech winners remain smaller but benefit from platform and payments trends.",
+      avgMarketCap: 55,
+      avgRoi1Y: 18,
+      companies: [
+        { name: "Shopify", ticker: "SHOP", marketCap: 110, roi1Y: 20, note: "Global commerce software platform." },
+        { name: "Constellation Software", ticker: "CSU", marketCap: 65, roi1Y: 16, note: "Serial acquirer of vertical software." },
+        { name: "CGI", ticker: "GIB", marketCap: 28, roi1Y: 18, note: "IT services and enterprise modernization." },
+      ],
+    },
+  ],
+  KR: [
+    {
+      segment: "Semiconductors",
+      trendType: "Structural",
+      trendSummary: "Memory pricing and AI server demand still define Korea's equity leadership.",
+      avgMarketCap: 220,
+      avgRoi1Y: 25,
+      companies: [
+        { name: "Samsung Electronics", ticker: "005930", marketCap: 420, roi1Y: 24, note: "Memory, foundry, and consumer electronics anchor." },
+        { name: "SK Hynix", ticker: "000660", marketCap: 150, roi1Y: 31, note: "HBM and AI memory strength." },
+        { name: "Samsung SDI", ticker: "006400", marketCap: 90, roi1Y: 20, note: "Battery and advanced materials exposure." },
+      ],
+    },
+    {
+      segment: "Automotive",
+      trendType: "Reactive",
+      trendSummary: "Export demand, EV positioning, and FX shifts move Korea autos quickly.",
+      avgMarketCap: 55,
+      avgRoi1Y: 30,
+      companies: [
+        { name: "Hyundai", ticker: "005380", marketCap: 60, roi1Y: 32, note: "Global EV and SUV momentum." },
+        { name: "Kia", ticker: "000270", marketCap: 55, roi1Y: 29, note: "Operating leverage and design strength." },
+        { name: "Hyundai Mobis", ticker: "012330", marketCap: 50, roi1Y: 29, note: "Parts and module supplier." },
+      ],
+    },
+    {
+      segment: "Finance",
+      trendType: "Reactive",
+      trendSummary: "Banks respond quickly to rate, property, and credit cycle headlines.",
+      avgMarketCap: 25,
+      avgRoi1Y: 10,
+      companies: [
+        { name: "KB Financial", ticker: "105560", marketCap: 30, roi1Y: 11, note: "Largest diversified financial group." },
+        { name: "Shinhan Financial", ticker: "055550", marketCap: 24, roi1Y: 10, note: "Balanced bank and card franchise." },
+        { name: "Hana Financial", ticker: "086790", marketCap: 21, roi1Y: 9, note: "Commercial and retail banking mix." },
+      ],
+    },
+  ],
+  TW: [
+    {
+      segment: "Semiconductors",
+      trendType: "Structural",
+      trendSummary: "Advanced foundry dominance keeps Taiwan tied to long-cycle AI and compute demand.",
+      avgMarketCap: 350,
+      avgRoi1Y: 35,
+      companies: [
+        { name: "TSMC", ticker: "TSM", marketCap: 890, roi1Y: 39, note: "Global foundry leader." },
+        { name: "MediaTek", ticker: "2454", marketCap: 90, roi1Y: 32, note: "Mobile and edge chip design." },
+        { name: "UMC", ticker: "2303", marketCap: 70, roi1Y: 34, note: "Mature node manufacturing base." },
+      ],
+    },
+    {
+      segment: "Electronics Manufacturing",
+      trendType: "Reactive",
+      trendSummary: "Device cycle and export orders define Taiwan EMS leaders.",
+      avgMarketCap: 40,
+      avgRoi1Y: 20,
+      companies: [
+        { name: "Hon Hai", ticker: "2317", marketCap: 85, roi1Y: 19, note: "Global hardware assembly backbone." },
+        { name: "Quanta", ticker: "2382", marketCap: 22, roi1Y: 21, note: "Server and notebook manufacturing." },
+        { name: "Pegatron", ticker: "4938", marketCap: 13, roi1Y: 20, note: "Consumer electronics manufacturing." },
+      ],
+    },
+    {
+      segment: "Finance",
+      trendType: "Reactive",
+      trendSummary: "Financials stay sensitive to local property and regional risk sentiment.",
+      avgMarketCap: 20,
+      avgRoi1Y: 12,
+      companies: [
+        { name: "Cathay Financial", ticker: "2882", marketCap: 22, roi1Y: 11, note: "Insurance and banking mix." },
+        { name: "Fubon Financial", ticker: "2881", marketCap: 21, roi1Y: 12, note: "Large insurer-bank platform." },
+        { name: "CTBC Financial", ticker: "2891", marketCap: 17, roi1Y: 13, note: "Retail and cross-border banking." },
+      ],
+    },
+  ],
+  JP: [
+    {
+      segment: "Automotive",
+      trendType: "Reactive",
+      trendSummary: "FX, export demand, and EV competition drive Japan auto moves.",
+      avgMarketCap: 120,
+      avgRoi1Y: 20,
+      companies: [
+        { name: "Toyota", ticker: "7203", marketCap: 320, roi1Y: 24, note: "Scale leader with hybrid and EV optionality." },
+        { name: "Honda", ticker: "HMC", marketCap: 55, roi1Y: 18, note: "Balanced mobility and manufacturing story." },
+        { name: "Nissan", ticker: "7201", marketCap: 25, roi1Y: 18, note: "Turnaround and global demand sensitivity." },
+      ],
+    },
+    {
+      segment: "Industrials",
+      trendType: "Structural",
+      trendSummary: "Japanese industrial leaders benefit from automation and capex cycles.",
+      avgMarketCap: 60,
+      avgRoi1Y: 18,
+      companies: [
+        { name: "Mitsubishi Corp", ticker: "8058", marketCap: 95, roi1Y: 17, note: "Trading house exposure to global cycle." },
+        { name: "Hitachi", ticker: "6501", marketCap: 75, roi1Y: 20, note: "Digital infrastructure and industry." },
+        { name: "Komatsu", ticker: "6301", marketCap: 35, roi1Y: 17, note: "Machinery and construction demand." },
+      ],
+    },
+    {
+      segment: "Consumer Tech",
+      trendType: "Structural",
+      trendSummary: "Gaming, devices, and telecom-tech platforms keep this segment differentiated.",
+      avgMarketCap: 70,
+      avgRoi1Y: 25,
+      companies: [
+        { name: "Sony", ticker: "SONY", marketCap: 150, roi1Y: 22, note: "Gaming, media, and imaging portfolio." },
+        { name: "SoftBank", ticker: "9984", marketCap: 95, roi1Y: 24, note: "Telecom plus venture and AI exposure." },
+        { name: "Nintendo", ticker: "7974", marketCap: 65, roi1Y: 29, note: "Platform IP and console cycle." },
+      ],
+    },
+  ],
+  CN: [
+    {
+      segment: "E-commerce / Tech",
+      trendType: "Reactive",
+      trendSummary: "Policy signals and consumer confidence still drive China platform names.",
+      avgMarketCap: 200,
+      avgRoi1Y: 15,
+      companies: [
+        { name: "Alibaba", ticker: "BABA", marketCap: 210, roi1Y: 12, note: "Consumer and cloud recovery angle." },
+        { name: "Tencent", ticker: "0700", marketCap: 470, roi1Y: 18, note: "Gaming, ads, and platform breadth." },
+        { name: "JD.com", ticker: "9618", marketCap: 55, roi1Y: 15, note: "Retail execution and margin leverage." },
+      ],
+    },
+    {
+      segment: "EV / Auto",
+      trendType: "Structural",
+      trendSummary: "EV adoption and export scale keep this segment on a longer structural path.",
+      avgMarketCap: 60,
+      avgRoi1Y: 40,
+      companies: [
+        { name: "BYD", ticker: "1211", marketCap: 110, roi1Y: 42, note: "Integrated EV and battery champion." },
+        { name: "NIO", ticker: "NIO", marketCap: 12, roi1Y: 31, note: "Premium EV brand with execution pressure." },
+        { name: "Li Auto", ticker: "LI", marketCap: 58, roi1Y: 47, note: "Strong large-vehicle domestic demand." },
+      ],
+    },
+    {
+      segment: "Finance",
+      trendType: "Reactive",
+      trendSummary: "Chinese banks react to policy easing, credit demand, and property headlines.",
+      avgMarketCap: 150,
+      avgRoi1Y: 5,
+      companies: [
+        { name: "ICBC", ticker: "1398", marketCap: 220, roi1Y: 6, note: "Largest state-owned bank." },
+        { name: "China Construction Bank", ticker: "0939", marketCap: 160, roi1Y: 4, note: "Credit and policy transmission proxy." },
+        { name: "Bank of China", ticker: "3988", marketCap: 150, roi1Y: 5, note: "Cross-border and domestic exposure." },
+      ],
+    },
+  ],
+  HK: [
+    {
+      segment: "Internet Platforms",
+      trendType: "Reactive",
+      trendSummary: "Hong Kong tech trades as a fast policy-and-sentiment transmission channel.",
+      avgMarketCap: 220,
+      avgRoi1Y: 16,
+      companies: [
+        { name: "Tencent", ticker: "0700", marketCap: 470, roi1Y: 18, note: "Core Hong Kong tech proxy." },
+        { name: "Meituan", ticker: "3690", marketCap: 90, roi1Y: 14, note: "Consumption and delivery platform." },
+        { name: "AIA", ticker: "1299", marketCap: 140, roi1Y: 15, note: "Insurance and wealth flows." },
+      ],
+    },
+    {
+      segment: "Property / Financials",
+      trendType: "Reactive",
+      trendSummary: "Rates and China property spillover dominate this segment.",
+      avgMarketCap: 58,
+      avgRoi1Y: 9,
+      companies: [
+        { name: "Hong Kong Exchanges", ticker: "0388", marketCap: 42, roi1Y: 11, note: "Capital market activity proxy." },
+        { name: "Sun Hung Kai", ticker: "0016", marketCap: 23, roi1Y: 7, note: "Property bellwether." },
+        { name: "BOC Hong Kong", ticker: "2388", marketCap: 18, roi1Y: 9, note: "Local banking franchise." },
+      ],
+    },
+    {
+      segment: "Insurance",
+      trendType: "Structural",
+      trendSummary: "Wealth management and cross-border savings flows support the long-cycle case.",
+      avgMarketCap: 72,
+      avgRoi1Y: 13,
+      companies: [
+        { name: "AIA", ticker: "1299", marketCap: 140, roi1Y: 15, note: "Dominant Asia life insurer." },
+        { name: "Prudential", ticker: "PRU", marketCap: 38, roi1Y: 12, note: "Asia-oriented insurer." },
+        { name: "Ping An", ticker: "2318", marketCap: 38, roi1Y: 11, note: "China-linked financials exposure." },
+      ],
+    },
+  ],
+  SG: [
+    {
+      segment: "Banking",
+      trendType: "Reactive",
+      trendSummary: "Singapore banks respond quickly to rates and regional capital flows.",
+      avgMarketCap: 62,
+      avgRoi1Y: 14,
+      companies: [
+        { name: "DBS", ticker: "D05", marketCap: 95, roi1Y: 15, note: "Regional banking flagship." },
+        { name: "UOB", ticker: "U11", marketCap: 48, roi1Y: 13, note: "Commercial and wealth banking mix." },
+        { name: "OCBC", ticker: "O39", marketCap: 42, roi1Y: 13, note: "Insurance and banking combination." },
+      ],
+    },
+    {
+      segment: "Transport / Logistics",
+      trendType: "Structural",
+      trendSummary: "Singapore's hub status makes logistics a longer-cycle strategic segment.",
+      avgMarketCap: 28,
+      avgRoi1Y: 11,
+      companies: [
+        { name: "SIA", ticker: "C6L", marketCap: 19, roi1Y: 13, note: "Passenger and cargo travel proxy." },
+        { name: "ST Engineering", ticker: "S63", marketCap: 18, roi1Y: 11, note: "Aerospace and defense systems." },
+        { name: "Yangzijiang", ticker: "BS6", marketCap: 48, roi1Y: 9, note: "Shipping and marine demand." },
+      ],
+    },
+    {
+      segment: "REITs / Property",
+      trendType: "Reactive",
+      trendSummary: "Rates and property valuation changes hit this segment directly.",
+      avgMarketCap: 14,
+      avgRoi1Y: 8,
+      companies: [
+        { name: "CapitaLand Integrated", ticker: "C38U", marketCap: 12, roi1Y: 7, note: "Retail and office REIT proxy." },
+        { name: "Mapletree Industrial", ticker: "ME8U", marketCap: 10, roi1Y: 9, note: "Industrial and data center exposure." },
+        { name: "Ascendas REIT", ticker: "A17U", marketCap: 20, roi1Y: 8, note: "Business parks and logistics assets." },
+      ],
+    },
+  ],
+  IN: [
+    {
+      segment: "IT Services",
+      trendType: "Structural",
+      trendSummary: "India's software export base remains a long-duration services story.",
+      avgMarketCap: 92,
+      avgRoi1Y: 24,
+      companies: [
+        { name: "Infosys", ticker: "INFY", marketCap: 78, roi1Y: 21, note: "Global IT outsourcing platform." },
+        { name: "TCS", ticker: "TCS", marketCap: 165, roi1Y: 25, note: "Large-cap Indian services leader." },
+        { name: "Wipro", ticker: "WIT", marketCap: 33, roi1Y: 26, note: "Digital transformation and IT services." },
+      ],
+    },
+    {
+      segment: "Banking",
+      trendType: "Reactive",
+      trendSummary: "Domestic demand and credit growth still make Indian banks event-sensitive.",
+      avgMarketCap: 84,
+      avgRoi1Y: 19,
+      companies: [
+        { name: "HDFC Bank", ticker: "HDBK", marketCap: 145, roi1Y: 18, note: "Core private bank compounder." },
+        { name: "ICICI Bank", ticker: "IBN", marketCap: 73, roi1Y: 20, note: "Strong retail and corporate mix." },
+        { name: "State Bank of India", ticker: "SBI", marketCap: 35, roi1Y: 18, note: "State-owned scale and broad credit exposure." },
+      ],
+    },
+    {
+      segment: "Conglomerates / Industrials",
+      trendType: "Structural",
+      trendSummary: "Capex, infrastructure, and domestic manufacturing are long-cycle drivers.",
+      avgMarketCap: 66,
+      avgRoi1Y: 23,
+      companies: [
+        { name: "Reliance", ticker: "RELIANCE", marketCap: 190, roi1Y: 24, note: "Energy, telecom, and consumer platform mix." },
+        { name: "Larsen & Toubro", ticker: "LT", marketCap: 52, roi1Y: 22, note: "Infrastructure and project execution." },
+        { name: "Adani Ports", ticker: "ADANIPORTS", marketCap: 28, roi1Y: 22, note: "Trade and logistics leverage." },
+      ],
+    },
+  ],
+  DE: [
+    {
+      segment: "Industrials",
+      trendType: "Structural",
+      trendSummary: "German market leadership still leans on engineering and automation franchises.",
+      avgMarketCap: 120,
+      avgRoi1Y: 20,
+      companies: [
+        { name: "Siemens", ticker: "SIE", marketCap: 150, roi1Y: 19, note: "Industrial automation and electrification." },
+        { name: "Airbus", ticker: "AIR", marketCap: 120, roi1Y: 21, note: "Aerospace and order book visibility." },
+        { name: "Schneider Electric", ticker: "SU", marketCap: 130, roi1Y: 20, note: "Energy management and automation." },
+      ],
+    },
+    {
+      segment: "Software / Tech",
+      trendType: "Structural",
+      trendSummary: "European enterprise software remains one of Germany's cleaner structural growth areas.",
+      avgMarketCap: 282,
+      avgRoi1Y: 21,
+      companies: [
+        { name: "SAP", ticker: "SAP", marketCap: 250, roi1Y: 19, note: "Enterprise software transition story." },
+        { name: "ASML", ticker: "ASML", marketCap: 390, roi1Y: 24, note: "Semiconductor equipment dominance." },
+        { name: "Infineon", ticker: "IFX", marketCap: 105, roi1Y: 20, note: "Auto and power semiconductor leverage." },
+      ],
+    },
+    {
+      segment: "Autos / Mobility",
+      trendType: "Reactive",
+      trendSummary: "Demand and tariff sensitivity keep German autos highly reactive.",
+      avgMarketCap: 72,
+      avgRoi1Y: 14,
+      companies: [
+        { name: "Volkswagen", ticker: "VOW3", marketCap: 65, roi1Y: 12, note: "Global scale with EV transition risk." },
+        { name: "Mercedes-Benz", ticker: "MBG", marketCap: 70, roi1Y: 15, note: "Premium auto demand proxy." },
+        { name: "BMW", ticker: "BMW", marketCap: 81, roi1Y: 15, note: "Luxury autos and margins." },
+      ],
+    },
+  ],
+  UK: [
+    {
+      segment: "Banking",
+      trendType: "Reactive",
+      trendSummary: "UK bank performance remains closely linked to rates and domestic growth data.",
+      avgMarketCap: 70,
+      avgRoi1Y: 25,
+      companies: [
+        { name: "HSBC", ticker: "HSBC", marketCap: 145, roi1Y: 24, note: "Global banking franchise." },
+        { name: "Barclays", ticker: "BCS", marketCap: 42, roi1Y: 26, note: "Investment bank and UK consumer mix." },
+        { name: "Lloyds", ticker: "LYG", marketCap: 24, roi1Y: 25, note: "Domestic UK rates sensitivity." },
+      ],
+    },
+    {
+      segment: "Energy",
+      trendType: "Reactive",
+      trendSummary: "Commodity headlines still dominate UK energy heavyweights.",
+      avgMarketCap: 180,
+      avgRoi1Y: 18,
+      companies: [
+        { name: "Shell", ticker: "SHEL", marketCap: 210, roi1Y: 19, note: "Global energy major." },
+        { name: "BP", ticker: "BP", marketCap: 120, roi1Y: 17, note: "Oil and refining exposure." },
+        { name: "Rio Tinto", ticker: "RIO", marketCap: 115, roi1Y: 18, note: "Materials and commodity cycle." },
+      ],
+    },
+    {
+      segment: "Consumer / Media",
+      trendType: "Structural",
+      trendSummary: "Media, data, and staples give the UK a steadier structural cash flow mix.",
+      avgMarketCap: 74,
+      avgRoi1Y: 14,
+      companies: [
+        { name: "Relx", ticker: "REL", marketCap: 78, roi1Y: 15, note: "Data and information services." },
+        { name: "Unilever", ticker: "UL", marketCap: 110, roi1Y: 13, note: "Global staples footprint." },
+        { name: "Diageo", ticker: "DEO", marketCap: 35, roi1Y: 14, note: "Premium consumer brand exposure." },
+      ],
+    },
+  ],
+  FR: [
+    {
+      segment: "Luxury",
+      trendType: "Structural",
+      trendSummary: "Luxury remains France's strongest global structural equity segment.",
+      avgMarketCap: 200,
+      avgRoi1Y: 22,
+      companies: [
+        { name: "LVMH", ticker: "MC", marketCap: 360, roi1Y: 21, note: "Luxury bellwether." },
+        { name: "Hermes", ticker: "RMS", marketCap: 250, roi1Y: 25, note: "Ultra-premium demand resilience." },
+        { name: "Kering", ticker: "KER", marketCap: 55, roi1Y: 20, note: "Luxury portfolio turnaround case." },
+      ],
+    },
+    {
+      segment: "Industrials",
+      trendType: "Structural",
+      trendSummary: "Aerospace and electrification drive France's industrial leaders.",
+      avgMarketCap: 120,
+      avgRoi1Y: 20,
+      companies: [
+        { name: "Airbus", ticker: "AIR", marketCap: 120, roi1Y: 19, note: "Aerospace backlog visibility." },
+        { name: "Schneider Electric", ticker: "SU", marketCap: 130, roi1Y: 21, note: "Energy efficiency and automation." },
+        { name: "Safran", ticker: "SAF", marketCap: 110, roi1Y: 20, note: "Aircraft engine cycle." },
+      ],
+    },
+    {
+      segment: "Banking / Utilities",
+      trendType: "Reactive",
+      trendSummary: "Rates and regulated pricing make this basket more event-sensitive.",
+      avgMarketCap: 56,
+      avgRoi1Y: 12,
+      companies: [
+        { name: "BNP Paribas", ticker: "BNP", marketCap: 90, roi1Y: 11, note: "European bank with diversified footprint." },
+        { name: "Credit Agricole", ticker: "ACA", marketCap: 52, roi1Y: 13, note: "Retail and asset management mix." },
+        { name: "Veolia", ticker: "VIE", marketCap: 26, roi1Y: 12, note: "Utility and environmental services angle." },
+      ],
+    },
+  ],
+};
 
 const sectorOrder = [
   "Technology",
@@ -357,6 +852,8 @@ export default function ExplorePage() {
   const [selectedTicker, setSelectedTicker] = useState("ASML");
   const [selectedSector, setSelectedSector] = useState("Technology");
   const [viewMode, setViewMode] = useState<ViewMode>("map");
+  const [chartMode, setChartMode] = useState<ChartMode>("heatmap");
+  const [structureViewMode, setStructureViewMode] = useState<StructureViewMode>("country");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [marketRisk, setMarketRisk] = useState<MarketRiskSnapshot | null>(null);
@@ -376,6 +873,9 @@ export default function ExplorePage() {
     monthlyCashFlowStability: "moderate",
     lossTolerance: 20,
   });
+  const [selectedStructureCountry, setSelectedStructureCountry] = useState<Exclude<RegionCode, BaseRegion>>("US");
+  const [selectedStructureSegment, setSelectedStructureSegment] = useState("");
+  const [compareTickers, setCompareTickers] = useState<string[]>([]);
 
   const needsMarketData = viewMode === "map" || viewMode === "chart";
 
@@ -425,6 +925,16 @@ export default function ExplorePage() {
       setSelectedRegion(getParentRegion(selectedRegion));
     }
   }, [selectedRegion, viewMode]);
+
+  useEffect(() => {
+    if (viewMode !== "chart") {
+      return;
+    }
+
+    if (chartMode === "heatmap") {
+      setCompareTickers([]);
+    }
+  }, [chartMode, viewMode]);
 
   useEffect(() => {
     if (viewMode === "chart") {
@@ -609,6 +1119,153 @@ export default function ExplorePage() {
     [filteredRegionStocks, regionStocks, selectedTicker],
   );
 
+  const structureCountries = useMemo(
+    () => DETAIL_REGIONS[selectedRegion as BaseRegion] ?? [],
+    [selectedRegion],
+  );
+
+  useEffect(() => {
+    if (viewMode !== "chart" || chartMode !== "structure") {
+      return;
+    }
+
+    const fallbackCountry = structureCountries[0];
+    if (!fallbackCountry) {
+      return;
+    }
+
+    if (!structureCountries.includes(selectedStructureCountry)) {
+      setSelectedStructureCountry(fallbackCountry as Exclude<RegionCode, BaseRegion>);
+    }
+  }, [chartMode, selectedStructureCountry, selectedRegion, structureCountries, viewMode]);
+
+  const selectedCountrySegments = useMemo(
+    () => structureData[selectedStructureCountry] ?? [],
+    [selectedStructureCountry],
+  );
+
+  const aggregatedSegments = useMemo(() => {
+    const grouped = new Map<string, AggregatedSegment>();
+
+    for (const country of structureCountries) {
+      const segments = structureData[country as Exclude<RegionCode, BaseRegion>] ?? [];
+
+      for (const segment of segments) {
+        const existing = grouped.get(segment.segment);
+        const companies = segment.companies.map((company) => ({
+          ...company,
+          country: country as Exclude<RegionCode, BaseRegion>,
+        }));
+
+        if (!existing) {
+          grouped.set(segment.segment, {
+            segment: segment.segment,
+            trendType: segment.trendType,
+            trendSummary: segment.trendSummary,
+            avgMarketCap: segment.avgMarketCap,
+            avgRoi1Y: segment.avgRoi1Y,
+            countryCount: 1,
+            countries: [country as Exclude<RegionCode, BaseRegion>],
+            companies,
+          });
+          continue;
+        }
+
+        const nextCountryCount = existing.countryCount + 1;
+        const structuralBias =
+          (existing.trendType === "Structural" ? 1 : 0) +
+          (segment.trendType === "Structural" ? 1 : 0);
+
+        grouped.set(segment.segment, {
+          segment: existing.segment,
+          trendType: structuralBias >= 1 ? "Structural" : "Reactive",
+          trendSummary:
+            existing.countryCount >= nextCountryCount / 2 ? existing.trendSummary : segment.trendSummary,
+          avgMarketCap: Math.round(
+            (existing.avgMarketCap * existing.countryCount + segment.avgMarketCap) / nextCountryCount,
+          ),
+          avgRoi1Y: Math.round(
+            (existing.avgRoi1Y * existing.countryCount + segment.avgRoi1Y) / nextCountryCount,
+          ),
+          countryCount: nextCountryCount,
+          countries: [...existing.countries, country as Exclude<RegionCode, BaseRegion>],
+          companies: [...existing.companies, ...companies]
+            .sort((a, b) => b.marketCap - a.marketCap)
+            .slice(0, 3),
+        });
+      }
+    }
+
+    return [...grouped.values()].sort((a, b) => b.avgMarketCap - a.avgMarketCap);
+  }, [structureCountries]);
+
+  const [selectedGlobalSegment, setSelectedGlobalSegment] = useState("");
+
+  useEffect(() => {
+    if (viewMode !== "chart" || chartMode !== "structure") {
+      return;
+    }
+
+    const fallbackSegment = selectedCountrySegments[0]?.segment ?? "";
+    if (!fallbackSegment) {
+      setSelectedStructureSegment("");
+      return;
+    }
+
+    if (!selectedCountrySegments.some((segment) => segment.segment === selectedStructureSegment)) {
+      setSelectedStructureSegment(fallbackSegment);
+    }
+  }, [chartMode, selectedCountrySegments, selectedStructureSegment, viewMode]);
+
+  useEffect(() => {
+    if (viewMode !== "chart" || chartMode !== "structure" || structureViewMode !== "segment") {
+      return;
+    }
+
+    const fallbackSegment = aggregatedSegments[0]?.segment ?? "";
+    if (!fallbackSegment) {
+      setSelectedGlobalSegment("");
+      return;
+    }
+
+    if (!aggregatedSegments.some((segment) => segment.segment === selectedGlobalSegment)) {
+      setSelectedGlobalSegment(fallbackSegment);
+    }
+  }, [aggregatedSegments, chartMode, selectedGlobalSegment, structureViewMode, viewMode]);
+
+  const activeStructureSegment = useMemo(
+    () => selectedCountrySegments.find((segment) => segment.segment === selectedStructureSegment) ?? selectedCountrySegments[0],
+    [selectedCountrySegments, selectedStructureSegment],
+  );
+
+  const activeGlobalSegment = useMemo(
+    () => aggregatedSegments.find((segment) => segment.segment === selectedGlobalSegment) ?? aggregatedSegments[0],
+    [aggregatedSegments, selectedGlobalSegment],
+  );
+
+  const comparisonSourceSegments = structureViewMode === "segment" ? aggregatedSegments : selectedCountrySegments;
+
+  const comparisonCompanies = useMemo(() => {
+    const candidates = comparisonSourceSegments.flatMap((segment) =>
+      segment.companies.map((company) => ({
+        ...company,
+        segment: segment.segment,
+        trendType: segment.trendType,
+      })),
+    );
+    return candidates.filter((company) => compareTickers.includes(company.ticker));
+  }, [comparisonSourceSegments, compareTickers]);
+
+  const activeStructureCompany = useMemo(() => {
+    if (comparisonCompanies[0]) {
+      return comparisonCompanies[0];
+    }
+    if (structureViewMode === "segment") {
+      return activeGlobalSegment?.companies[0] ?? null;
+    }
+    return activeStructureSegment?.companies[0] ?? null;
+  }, [activeGlobalSegment, activeStructureSegment, comparisonCompanies, structureViewMode]);
+
   function getMapPosition(region: RegionCode) {
     if (mapFocusRegion && focusedRegionPositions[mapFocusRegion][region]) {
       return focusedRegionPositions[mapFocusRegion][region]!;
@@ -661,6 +1318,18 @@ export default function ExplorePage() {
 
     setMapFocusRegion(null);
     setSelectedRegion(region);
+  }
+
+  function toggleCompareTicker(ticker: string) {
+    setCompareTickers((current) => {
+      if (current.includes(ticker)) {
+        return current.filter((item) => item !== ticker);
+      }
+      if (current.length >= 3) {
+        return [...current.slice(1), ticker];
+      }
+      return [...current, ticker];
+    });
   }
 
   const canContinueProfile = profileForm.name.trim().length > 0 || profileForm.email.trim().length > 0;
@@ -1020,66 +1689,262 @@ export default function ExplorePage() {
                     <div className="map-header">
                       <div>
                         <p className="eyebrow">Chart view</p>
-                        <h2>Regional stock heatmap</h2>
+                        <h2>{chartMode === "heatmap" ? "Regional stock heatmap" : "Market structure explorer"}</h2>
                       </div>
-                      <div className="map-chip">{activeRegion?.region_name}</div>
-                    </div>
-
-                    <div className="chart-shell">
-                      <aside className="sector-rail">
+                      <div className="chart-mode-toggle">
                         <button
                           type="button"
-                          className={`sector-link ${selectedSector === "All" ? "active" : ""}`}
-                          onClick={() => setSelectedSector("All")}
+                          className={`chart-mode-button ${chartMode === "heatmap" ? "active" : ""}`}
+                          onClick={() => setChartMode("heatmap")}
                         >
-                          All
+                          Heatmap
                         </button>
-                        {sortedSectors.map((sector) => (
-                          <button
-                            key={sector}
-                            type="button"
-                            className={`sector-link ${selectedSector === sector ? "active" : ""}`}
-                            onClick={() => setSelectedSector(sector)}
-                          >
-                            {sector}
-                            <span className="sector-cap">
-                              {Math.round(
-                                regionStocks
-                                  .filter((stock) => stock.sector === sector)
-                                  .reduce((sum, stock) => sum + stock.marketCap, 0),
-                              )}B
-                            </span>
-                          </button>
-                        ))}
-                      </aside>
-
-                      <div className="heatmap-stage">
-                        <div className="heatmap-grid">
-                          {filteredRegionStocks.map((stock) => (
-                            <button
-                              key={stock.ticker}
-                              type="button"
-                              className={`heat-tile ${stockToneClass(stock.change)} ${stockSizeClass(stock.size)} ${
-                                activeStock?.ticker === stock.ticker ? "selected" : ""
-                              }`}
-                              onClick={() => setSelectedTicker(stock.ticker)}
-                            >
-                              <span className="heat-ticker">{stock.ticker}</span>
-                              <span className="heat-name">{stock.name}</span>
-                              <span className="heat-sector">{stock.sector}</span>
-                              <strong className="heat-change">
-                                {stock.change > 0 ? "+" : ""}
-                                {stock.change.toFixed(2)}%
-                              </strong>
-                            </button>
-                          ))}
-                        </div>
+                        <button
+                          type="button"
+                          className={`chart-mode-button ${chartMode === "structure" ? "active" : ""}`}
+                          onClick={() => setChartMode("structure")}
+                        >
+                          Structure
+                        </button>
                       </div>
                     </div>
+
+                    {chartMode === "structure" ? (
+                      <div className="structure-view-toggle">
+                        <button
+                          type="button"
+                          className={`structure-view-button ${structureViewMode === "country" ? "active" : ""}`}
+                          onClick={() => {
+                            setStructureViewMode("country");
+                            setCompareTickers([]);
+                          }}
+                        >
+                          By Country
+                        </button>
+                        <button
+                          type="button"
+                          className={`structure-view-button ${structureViewMode === "segment" ? "active" : ""}`}
+                          onClick={() => {
+                            setStructureViewMode("segment");
+                            setCompareTickers([]);
+                          }}
+                        >
+                          By Segment
+                        </button>
+                      </div>
+                    ) : null}
+
+                    {chartMode === "heatmap" ? (
+                      <div className="chart-shell">
+                        <aside className="sector-rail">
+                          <button
+                            type="button"
+                            className={`sector-link ${selectedSector === "All" ? "active" : ""}`}
+                            onClick={() => setSelectedSector("All")}
+                          >
+                            All
+                          </button>
+                          {sortedSectors.map((sector) => (
+                            <button
+                              key={sector}
+                              type="button"
+                              className={`sector-link ${selectedSector === sector ? "active" : ""}`}
+                              onClick={() => setSelectedSector(sector)}
+                            >
+                              {sector}
+                              <span className="sector-cap">
+                                {Math.round(
+                                  regionStocks
+                                    .filter((stock) => stock.sector === sector)
+                                    .reduce((sum, stock) => sum + stock.marketCap, 0),
+                                )}B
+                              </span>
+                            </button>
+                          ))}
+                        </aside>
+
+                        <div className="heatmap-stage">
+                          <div className="heatmap-grid">
+                            {filteredRegionStocks.map((stock) => (
+                              <button
+                                key={stock.ticker}
+                                type="button"
+                                className={`heat-tile ${stockToneClass(stock.change)} ${stockSizeClass(stock.size)} ${
+                                  activeStock?.ticker === stock.ticker ? "selected" : ""
+                                }`}
+                                onClick={() => setSelectedTicker(stock.ticker)}
+                              >
+                                <span className="heat-ticker">{stock.ticker}</span>
+                                <span className="heat-name">{stock.name}</span>
+                                <span className="heat-sector">{stock.sector}</span>
+                                <strong className="heat-change">
+                                  {stock.change > 0 ? "+" : ""}
+                                  {stock.change.toFixed(2)}%
+                                </strong>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ) : structureViewMode === "country" ? (
+                      <div className="structure-shell">
+                        <aside className="structure-column">
+                          <div className="structure-column-header">
+                            <span>Countries</span>
+                            <strong>{activeRegion?.region_name}</strong>
+                          </div>
+                          <div className="structure-stack">
+                            {structureCountries.map((countryCode) => {
+                              const regionCard = mapRegionLookup.get(countryCode);
+                              if (!regionCard) return null;
+                              return (
+                                <button
+                                  key={countryCode}
+                                  type="button"
+                                  className={`structure-country-card ${selectedStructureCountry === countryCode ? "active" : ""}`}
+                                  onClick={() => setSelectedStructureCountry(countryCode as Exclude<RegionCode, BaseRegion>)}
+                                >
+                                  <span>{regionLabels[countryCode]}</span>
+                                  <strong>{regionCard.region_name}</strong>
+                                  <small>{regionCard.count} articles</small>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </aside>
+
+                        <div className="structure-main">
+                          <div className="structure-column-header">
+                            <span>Top Segments</span>
+                            <strong>{mapRegionLookup.get(selectedStructureCountry)?.region_name ?? regionLabels[selectedStructureCountry]}</strong>
+                          </div>
+                          <div className="structure-segment-grid">
+                            {selectedCountrySegments.map((segment) => (
+                              <button
+                                key={segment.segment}
+                                type="button"
+                                className={`structure-segment-card ${activeStructureSegment?.segment === segment.segment ? "active" : ""}`}
+                                onClick={() => setSelectedStructureSegment(segment.segment)}
+                              >
+                                <div className="structure-segment-top">
+                                  <strong>{segment.segment}</strong>
+                                  <span className={`trend-pill trend-${segment.trendType.toLowerCase()}`}>
+                                    {segment.trendType}
+                                  </span>
+                                </div>
+                                <p>{segment.trendSummary}</p>
+                                <div className="structure-metric-row">
+                                  <span>Avg Mkt Cap</span>
+                                  <strong>{segment.avgMarketCap}B</strong>
+                                </div>
+                                <div className="structure-metric-row">
+                                  <span>Avg ROI (1Y)</span>
+                                  <strong>{segment.avgRoi1Y}%</strong>
+                                </div>
+                                <div className="structure-company-list">
+                                  {segment.companies.slice(0, 3).map((company) => (
+                                    <span key={company.ticker}>{company.name}</span>
+                                  ))}
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="structure-shell">
+                        <aside className="structure-column">
+                          <div className="structure-column-header">
+                            <span>Segments</span>
+                            <strong>{activeRegion?.region_name}</strong>
+                          </div>
+                          <div className="structure-stack">
+                            {aggregatedSegments.map((segment) => (
+                              <button
+                                key={segment.segment}
+                                type="button"
+                                className={`structure-country-card ${activeGlobalSegment?.segment === segment.segment ? "active" : ""}`}
+                                onClick={() => setSelectedGlobalSegment(segment.segment)}
+                              >
+                                <span>{segment.segment}</span>
+                                <strong>{segment.countryCount} markets</strong>
+                                <small>{segment.companies.map((company) => company.name).join(" · ")}</small>
+                              </button>
+                            ))}
+                          </div>
+                        </aside>
+
+                        <div className="structure-main">
+                          {activeGlobalSegment ? (
+                            <>
+                              <div className="structure-hero-card">
+                                <div className="structure-hero-top">
+                                  <div>
+                                    <span className="eyebrow">Segment Focus</span>
+                                    <h3>{activeGlobalSegment.segment}</h3>
+                                  </div>
+                                  <span className={`trend-pill trend-${activeGlobalSegment.trendType.toLowerCase()}`}>
+                                    {activeGlobalSegment.trendType}
+                                  </span>
+                                </div>
+                                <p>{activeGlobalSegment.trendSummary}</p>
+                                <div className="structure-hero-grid">
+                                  <div className="metric-box">
+                                    <span>Markets</span>
+                                    <strong>{activeGlobalSegment.countryCount}</strong>
+                                  </div>
+                                  <div className="metric-box">
+                                    <span>Avg Mkt Cap</span>
+                                    <strong>{activeGlobalSegment.avgMarketCap}B</strong>
+                                  </div>
+                                  <div className="metric-box">
+                                    <span>Avg ROI (1Y)</span>
+                                    <strong>{activeGlobalSegment.avgRoi1Y}%</strong>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="structure-segment-grid structure-company-grid">
+                                {activeGlobalSegment.companies.map((company) => (
+                                  <button
+                                    key={company.ticker}
+                                    type="button"
+                                    className={`structure-segment-card structure-company-card ${
+                                      compareTickers.includes(company.ticker) ? "active" : ""
+                                    }`}
+                                    onClick={() => toggleCompareTicker(company.ticker)}
+                                  >
+                                    <div className="structure-segment-top">
+                                      <strong>{company.name}</strong>
+                                      <span>{regionLabels[company.country]}</span>
+                                    </div>
+                                    <div className="structure-metric-row">
+                                      <span>Ticker</span>
+                                      <strong>{company.ticker}</strong>
+                                    </div>
+                                    <div className="structure-metric-row">
+                                      <span>Market Cap</span>
+                                      <strong>{company.marketCap}B</strong>
+                                    </div>
+                                    <div className="structure-metric-row">
+                                      <span>ROI (1Y)</span>
+                                      <strong>{company.roi1Y}%</strong>
+                                    </div>
+                                    <p>{company.note}</p>
+                                  </button>
+                                ))}
+                              </div>
+                            </>
+                          ) : (
+                            <div className="state-card">No segment data available for this region yet.</div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </section>
 
                   <aside className="news-panel">
-                    {activeStock ? (
+                    {chartMode === "heatmap" && activeStock ? (
                       <>
                         <div className="news-header">
                           <div>
@@ -1141,8 +2006,183 @@ export default function ExplorePage() {
                           ))}
                         </div>
                       </>
+                    ) : chartMode === "structure" && structureViewMode === "country" && activeStructureSegment ? (
+                      <>
+                        <div className="news-header">
+                          <div>
+                            <p className="eyebrow">{selectedStructureCountry}</p>
+                            <h2>{activeStructureSegment.segment}</h2>
+                            <p className="news-subtitle">{activeStructureSegment.trendSummary}</p>
+                          </div>
+                          <div className={`sentiment-pill trend-${activeStructureSegment.trendType.toLowerCase()}`}>
+                            {activeStructureSegment.trendType}
+                          </div>
+                        </div>
+
+                        <div className="news-metrics">
+                          <div className="metric-box">
+                            <span>Country</span>
+                            <strong>{regionLabels[selectedStructureCountry]}</strong>
+                          </div>
+                          <div className="metric-box">
+                            <span>Avg Mkt Cap</span>
+                            <strong>{activeStructureSegment.avgMarketCap}B</strong>
+                          </div>
+                          <div className="metric-box">
+                            <span>Avg ROI (1Y)</span>
+                            <strong>{activeStructureSegment.avgRoi1Y}%</strong>
+                          </div>
+                          <div className="metric-box">
+                            <span>Compare</span>
+                            <strong>{compareTickers.length}/3</strong>
+                          </div>
+                        </div>
+
+                        <div className="structure-company-panel">
+                          <div className="structure-panel-header">
+                            <strong>Top 3 companies</strong>
+                            <span>Select up to 3 for comparison</span>
+                          </div>
+                          <div className="article-list">
+                            {activeStructureSegment.companies.map((company) => (
+                              <button
+                                key={company.ticker}
+                                type="button"
+                                className={`article-card stock-list-card ${
+                                  compareTickers.includes(company.ticker) ? "stock-list-card-active" : ""
+                                }`}
+                                onClick={() => toggleCompareTicker(company.ticker)}
+                              >
+                                <div className="article-meta">
+                                  <span>{company.ticker}</span>
+                                  <span className="article-tone">
+                                    {company.roi1Y > 0 ? "+" : ""}
+                                    {company.roi1Y}%
+                                  </span>
+                                </div>
+                                <h3>{company.name}</h3>
+                                <p>{company.note}</p>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="risk-summary-card">
+                          <div className="risk-summary-header">
+                            <strong>Comparison</strong>
+                            <span className="map-chip">Up to 3 companies</span>
+                          </div>
+                          {comparisonCompanies.length > 0 ? (
+                            <div className="comparison-grid">
+                              {comparisonCompanies.map((company) => (
+                                <div key={company.ticker} className="comparison-card">
+                                  <span>{company.ticker}</span>
+                                  <strong>{company.name}</strong>
+                                  <small>Mcap {company.marketCap}B</small>
+                                  <small>ROI {company.roi1Y}%</small>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="risk-summary-copy">
+                              Start with a country, pick a segment, then select up to three companies to compare.
+                            </p>
+                          )}
+                          {activeStructureCompany ? (
+                            <p className="risk-summary-copy">
+                              Focus company: {activeStructureCompany.name}. This segment is currently classified as{" "}
+                              {activeStructureSegment.trendType.toLowerCase()} because {activeStructureSegment.trendSummary.toLowerCase()}
+                            </p>
+                          ) : null}
+                        </div>
+                      </>
+                    ) : chartMode === "structure" && structureViewMode === "segment" && activeGlobalSegment ? (
+                      <>
+                        <div className="news-header">
+                          <div>
+                            <p className="eyebrow">{selectedRegion}</p>
+                            <h2>{activeGlobalSegment.segment}</h2>
+                            <p className="news-subtitle">{activeGlobalSegment.trendSummary}</p>
+                          </div>
+                          <div className={`sentiment-pill trend-${activeGlobalSegment.trendType.toLowerCase()}`}>
+                            {activeGlobalSegment.trendType}
+                          </div>
+                        </div>
+
+                        <div className="news-metrics">
+                          <div className="metric-box">
+                            <span>Region</span>
+                            <strong>{regionLabels[selectedRegion]}</strong>
+                          </div>
+                          <div className="metric-box">
+                            <span>Markets</span>
+                            <strong>{activeGlobalSegment.countryCount}</strong>
+                          </div>
+                          <div className="metric-box">
+                            <span>Avg Mkt Cap</span>
+                            <strong>{activeGlobalSegment.avgMarketCap}B</strong>
+                          </div>
+                          <div className="metric-box">
+                            <span>Compare</span>
+                            <strong>{compareTickers.length}/3</strong>
+                          </div>
+                        </div>
+
+                        <div className="risk-summary-card">
+                          <div className="risk-summary-header">
+                            <strong>Top 3 Companies In Segment</strong>
+                            <span className="map-chip">{activeGlobalSegment.segment}</span>
+                          </div>
+                          <p className="risk-summary-copy">
+                            Cross-market view for {activeGlobalSegment.segment.toLowerCase()} inside{" "}
+                            {activeRegion?.region_name ?? regionLabels[selectedRegion]}.
+                          </p>
+                          <div className="comparison-grid">
+                            {activeGlobalSegment.companies.map((company) => (
+                              <button
+                                key={company.ticker}
+                                type="button"
+                                className={`comparison-card comparison-card-button ${
+                                  compareTickers.includes(company.ticker) ? "stock-list-card-active" : ""
+                                }`}
+                                onClick={() => toggleCompareTicker(company.ticker)}
+                              >
+                                <span>{regionLabels[company.country]}</span>
+                                <strong>{company.name}</strong>
+                                <small>{company.ticker}</small>
+                                <small>Mcap {company.marketCap}B</small>
+                                <small>ROI {company.roi1Y}%</small>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="risk-summary-card">
+                          <div className="risk-summary-header">
+                            <strong>Comparison</strong>
+                            <span className="map-chip">Up to 3 companies</span>
+                          </div>
+                          {comparisonCompanies.length > 0 ? (
+                            <div className="comparison-grid">
+                              {comparisonCompanies.map((company) => (
+                                <div key={company.ticker} className="comparison-card">
+                                  <span>{regionLabels[(company as typeof company & { country?: Exclude<RegionCode, BaseRegion> }).country ?? selectedStructureCountry]}</span>
+                                  <strong>{company.name}</strong>
+                                  <small>{company.segment}</small>
+                                  <small>Mcap {company.marketCap}B</small>
+                                  <small>ROI {company.roi1Y}%</small>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="risk-summary-copy">
+                              Pick up to three companies inside this segment to compare them side by side.
+                            </p>
+                          )}
+                        </div>
+                      </>
                     ) : (
-                      <div className="state-card">No stock selected.</div>
+                      <div className="state-card">No stock or segment selected.</div>
                     )}
                   </aside>
                 </div>
