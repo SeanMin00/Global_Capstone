@@ -68,6 +68,20 @@ const regionPositions: Record<RegionCode, { top: string; left: string }> = {
   FR: { top: "38%", left: "52.5%" },
 };
 
+const focusedRegionPositions: Record<"ASIA" | "EU", Partial<Record<RegionCode, { top: string; left: string }>>> = {
+  ASIA: {
+    KR: { top: "36%", left: "29%" },
+    CN: { top: "56%", left: "48%" },
+    JP: { top: "28%", left: "69%" },
+    TW: { top: "48%", left: "76%" },
+  },
+  EU: {
+    UK: { top: "30%", left: "28%" },
+    DE: { top: "44%", left: "56%" },
+    FR: { top: "62%", left: "38%" },
+  },
+};
+
 const heatmapStocks: HeatmapStock[] = [
   { ticker: "AAPL", name: "Apple", sector: "Technology", region: "US", change: 1.42, marketCap: 2950, size: "lg" },
   { ticker: "MSFT", name: "Microsoft", sector: "Technology", region: "US", change: 2.14, marketCap: 3150, size: "lg" },
@@ -213,7 +227,7 @@ function scaleBubbleSize(value: number, minValue: number, maxValue: number, minS
 export default function ExplorePage() {
   const [regions, setRegions] = useState<RegionSummary[]>([]);
   const [selectedRegion, setSelectedRegion] = useState<RegionCode>("EU");
-  const [expandedGroup, setExpandedGroup] = useState<"ASIA" | "EU" | null>(null);
+  const [mapFocusRegion, setMapFocusRegion] = useState<"ASIA" | "EU" | null>(null);
   const [selectedTicker, setSelectedTicker] = useState("ASML");
   const [selectedSector, setSelectedSector] = useState("Technology");
   const [viewMode, setViewMode] = useState<ViewMode>("map");
@@ -263,17 +277,17 @@ export default function ExplorePage() {
 
   useEffect(() => {
     if (viewMode === "chart") {
-      setExpandedGroup(null);
+      setMapFocusRegion(null);
       return;
     }
 
     if (ASIA_DETAIL_REGIONS.includes(selectedRegion)) {
-      setExpandedGroup("ASIA");
+      setMapFocusRegion("ASIA");
       return;
     }
 
     if (EU_DETAIL_REGIONS.includes(selectedRegion)) {
-      setExpandedGroup("EU");
+      setMapFocusRegion("EU");
       return;
     }
   }, [selectedRegion, viewMode]);
@@ -323,68 +337,54 @@ export default function ExplorePage() {
     () => ({
       ASIA: DETAIL_REGIONS.ASIA.map((code) => mapRegionLookup.get(code))
         .filter((region): region is RegionSummary => Boolean(region))
-        .sort((a, b) => b.count - a.count),
+        .sort((a, b) => getRegionMarketCap(b.region) - getRegionMarketCap(a.region)),
       EU: DETAIL_REGIONS.EU.map((code) => mapRegionLookup.get(code))
         .filter((region): region is RegionSummary => Boolean(region))
-        .sort((a, b) => b.count - a.count),
+        .sort((a, b) => getRegionMarketCap(b.region) - getRegionMarketCap(a.region)),
     }),
     [mapRegionLookup],
   );
 
-  const visibleMapMarkers = useMemo(() => {
-    const baseMarkers = BASE_REGIONS.map((code) => mapRegionLookup.get(code))
-      .filter((region): region is RegionSummary => Boolean(region));
+  const baseMapRegions = useMemo(
+    () =>
+      BASE_REGIONS.map((code) => mapRegionLookup.get(code)).filter(
+        (region): region is RegionSummary => Boolean(region),
+      ),
+    [mapRegionLookup],
+  );
 
-    if (!expandedGroup) {
-      return baseMarkers;
+  const currentMapRegions = useMemo(() => {
+    if (!mapFocusRegion) {
+      return baseMapRegions;
     }
 
-    return [...baseMarkers, ...detailRegionsByGroup[expandedGroup]];
-  }, [mapRegionLookup, detailRegionsByGroup, expandedGroup]);
+    return detailRegionsByGroup[mapFocusRegion];
+  }, [baseMapRegions, detailRegionsByGroup, mapFocusRegion]);
 
   const mapBubbleMetrics = useMemo(() => {
-    const baseCaps = BASE_REGIONS.map((code) => ({
-      region: code,
-      marketCap: getRegionMarketCap(code),
-    })).filter((item) => item.marketCap > 0);
-
-    const detailCaps =
-      expandedGroup === null
-        ? []
-        : detailRegionsByGroup[expandedGroup].map((region) => ({
-            region: region.region,
-            marketCap: getRegionMarketCap(region.region),
-          }));
-
-    const baseMin = Math.min(...baseCaps.map((item) => item.marketCap));
-    const baseMax = Math.max(...baseCaps.map((item) => item.marketCap));
-    const detailPositiveCaps = detailCaps.filter((item) => item.marketCap > 0);
-    const detailMin = detailPositiveCaps.length
-      ? Math.min(...detailPositiveCaps.map((item) => item.marketCap))
-      : 0;
-    const detailMax = detailPositiveCaps.length
-      ? Math.max(...detailPositiveCaps.map((item) => item.marketCap))
-      : 0;
+    const positiveCaps = currentMapRegions
+      .map((region) => getRegionMarketCap(region.region))
+      .filter((marketCap) => marketCap > 0);
+    const minCap = positiveCaps.length ? Math.min(...positiveCaps) : 0;
+    const maxCap = positiveCaps.length ? Math.max(...positiveCaps) : 0;
+    const minSize = mapFocusRegion ? 140 : 220;
+    const maxSize = mapFocusRegion ? 280 : 420;
 
     return new Map(
-      visibleMapMarkers.map((region) => {
+      currentMapRegions.map((region) => {
         const marketCap = getRegionMarketCap(region.region);
-        const isBaseRegion = BASE_REGIONS.includes(region.region as BaseRegion);
-        const size = isBaseRegion
-          ? scaleBubbleSize(marketCap, baseMin, baseMax, 220, 420)
-          : scaleBubbleSize(marketCap, detailMin, detailMax, 72, 152);
+        const size = scaleBubbleSize(marketCap, minCap, maxCap, minSize, maxSize);
 
         return [
           region.region,
           {
             marketCap,
             size,
-            isBaseRegion,
           },
         ];
       }),
     );
-  }, [detailRegionsByGroup, expandedGroup, visibleMapMarkers]);
+  }, [currentMapRegions, mapFocusRegion]);
 
   const regionStocks = useMemo(
     () => heatmapStocks.filter((stock) => stock.region === selectedRegion),
@@ -416,105 +416,52 @@ export default function ExplorePage() {
     [filteredRegionStocks, regionStocks, selectedTicker],
   );
 
-  function toggleGroup(group: "ASIA" | "EU") {
-    const isExpanded = expandedGroup === group;
-    if (isExpanded) {
-      setExpandedGroup(null);
-      setSelectedRegion(group);
-      return;
+  function getMapPosition(region: RegionCode) {
+    if (mapFocusRegion && focusedRegionPositions[mapFocusRegion][region]) {
+      return focusedRegionPositions[mapFocusRegion][region]!;
     }
 
-    setExpandedGroup(group);
-    setSelectedRegion(group);
+    return regionPositions[region];
+  }
+
+  function enterMapGroup(group: "ASIA" | "EU") {
+    const defaultRegion = detailRegionsByGroup[group][0]?.region ?? group;
+    setMapFocusRegion(group);
+    setSelectedRegion(defaultRegion);
+  }
+
+  function returnToGlobalMap() {
+    const fallbackRegion = mapFocusRegion ?? getParentRegion(selectedRegion);
+    setMapFocusRegion(null);
+    setSelectedRegion(fallbackRegion);
   }
 
   function selectRegion(region: RegionCode) {
     if (viewMode === "chart") {
-      setExpandedGroup(null);
+      setMapFocusRegion(null);
       setSelectedRegion(getParentRegion(region));
       return;
     }
 
     if (region === "ASIA" || region === "EU") {
-      toggleGroup(region);
+      enterMapGroup(region);
       return;
     }
 
     if (isAsiaFamily(region)) {
-      setExpandedGroup("ASIA");
+      setMapFocusRegion("ASIA");
       setSelectedRegion(region);
       return;
     }
 
     if (isEuFamily(region)) {
-      setExpandedGroup("EU");
+      setMapFocusRegion("EU");
       setSelectedRegion(region);
       return;
     }
 
-    setExpandedGroup(null);
+    setMapFocusRegion(null);
     setSelectedRegion(region);
-  }
-
-  function renderMapRegionTab(region: RegionSummary) {
-    if (region.region !== "ASIA" && region.region !== "EU") {
-      return (
-        <button
-          key={region.region}
-          type="button"
-          className={`region-tab ${region.region === selectedRegion ? "active" : ""}`}
-          onClick={() => selectRegion(region.region)}
-          style={{
-            borderColor: region.region === selectedRegion ? region.color : "rgba(255,255,255,0.08)",
-          }}
-        >
-          <span>{regionLabels[region.region]}</span>
-          <strong>{region.count} articles</strong>
-        </button>
-      );
-    }
-
-    const group = region.region;
-    const expanded = expandedGroup === group;
-    const detailRegions = detailRegionsByGroup[group];
-
-    return (
-      <div key={`${group}-group`} className={`expandable-tab-group ${expanded ? "expanded" : ""}`}>
-        <button
-          type="button"
-          className={`region-tab expandable-parent-tab ${
-            region.region === selectedRegion ? "active" : ""
-          } ${expanded ? "expanded" : ""}`}
-          onClick={() => toggleGroup(group)}
-          style={{
-            borderColor: region.region === selectedRegion ? region.color : "rgba(255,255,255,0.08)",
-          }}
-        >
-          <span>{regionLabels[region.region]}</span>
-          <strong>{region.count} articles</strong>
-          <span className={`expand-icon ${expanded ? "expanded" : ""}`}>›</span>
-        </button>
-
-        <div className={`region-subtabs ${expanded ? "expanded" : ""} ${group.toLowerCase()}-subtabs`}>
-          {detailRegions.map((subregion) => (
-            <button
-              key={subregion.region}
-              type="button"
-              className={`region-tab region-subtab ${subregion.region === selectedRegion ? "active" : ""}`}
-              onClick={() => selectRegion(subregion.region)}
-              style={{
-                borderColor:
-                  subregion.region === selectedRegion ? subregion.color : "rgba(255,255,255,0.08)",
-              }}
-            >
-              <span className="subtab-glow" />
-              <span>{regionLabels[subregion.region]}</span>
-              <strong>{subregion.count} articles</strong>
-            </button>
-          ))}
-        </div>
-      </div>
-    );
   }
 
   return (
@@ -577,7 +524,27 @@ export default function ExplorePage() {
                         <strong>{Math.round(getRegionMarketCap(region.region))}B mcap</strong>
                       </button>
                     ))
-                  : articleSortedRegions.map((region) => renderMapRegionTab(region))}
+                  : articleSortedRegions.map((region) => (
+                      <button
+                        key={region.region}
+                        type="button"
+                        className={`region-tab ${
+                          (mapFocusRegion ? mapFocusRegion === region.region : selectedRegion === region.region)
+                            ? "active"
+                            : ""
+                        }`}
+                        onClick={() => selectRegion(region.region)}
+                        style={{
+                          borderColor:
+                            (mapFocusRegion ? mapFocusRegion === region.region : selectedRegion === region.region)
+                              ? region.color
+                              : "rgba(255,255,255,0.08)",
+                        }}
+                      >
+                        <span>{regionLabels[region.region]}</span>
+                        <strong>{region.count} articles</strong>
+                      </button>
+                    ))}
               </div>
 
               {viewMode === "map" ? (
@@ -588,11 +555,47 @@ export default function ExplorePage() {
                         <p className="eyebrow">Map view</p>
                         <h2>Regional sentiment map</h2>
                       </div>
-                      <div className="map-chip">{activeRegion?.region_name}</div>
+                      <div className="map-chip">
+                        {mapFocusRegion ? `${mapRegionLookup.get(mapFocusRegion)?.region_name} focus` : "Global view"}
+                      </div>
                     </div>
 
+                    {mapFocusRegion ? (
+                      <div className="map-detail-toolbar">
+                        <button type="button" className="map-back-button" onClick={returnToGlobalMap}>
+                          ← Back to Global
+                        </button>
+                        <div className="map-detail-meta">
+                          <strong>{mapRegionLookup.get(mapFocusRegion)?.region_name}</strong>
+                          <span>
+                            {Math.round(getRegionMarketCap(mapFocusRegion))}B mcap ·{" "}
+                            {mapRegionLookup.get(mapFocusRegion)?.count ?? 0} articles
+                          </span>
+                        </div>
+                        <div className="map-detail-tabs">
+                          {detailRegionsByGroup[mapFocusRegion].map((region) => (
+                            <button
+                              key={region.region}
+                              type="button"
+                              className={`map-detail-tab ${region.region === selectedRegion ? "active" : ""}`}
+                              onClick={() => selectRegion(region.region)}
+                              style={{
+                                borderColor:
+                                  region.region === selectedRegion
+                                    ? region.color
+                                    : "rgba(255,255,255,0.08)",
+                              }}
+                            >
+                              <span>{regionLabels[region.region]}</span>
+                              <strong>{Math.round(getRegionMarketCap(region.region))}B</strong>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
                     <div className="map-stage">
-                      {visibleMapMarkers.map((region) => {
+                      {currentMapRegions.map((region) => {
                         const bubble = mapBubbleMetrics.get(region.region);
                         if (!bubble) {
                           return null;
@@ -601,12 +604,12 @@ export default function ExplorePage() {
                         return (
                           <div
                             key={`${region.region}-bubble`}
-                            className={`map-bubble ${bubble.isBaseRegion ? "base-bubble" : "detail-bubble"} ${
+                            className={`map-bubble ${mapFocusRegion ? "detail-bubble" : "base-bubble"} ${
                               region.region === selectedRegion ? "active" : ""
                             }`}
                             style={{
-                              top: regionPositions[region.region].top,
-                              left: regionPositions[region.region].left,
+                              top: getMapPosition(region.region).top,
+                              left: getMapPosition(region.region).left,
                               width: `${bubble.size}px`,
                               height: `${bubble.size}px`,
                               background: sentimentBackground(region.sentiment),
@@ -625,15 +628,15 @@ export default function ExplorePage() {
                         );
                       })}
 
-                      {visibleMapMarkers.map((region) => (
+                      {currentMapRegions.map((region) => (
                         <button
                           key={region.region}
                           type="button"
                           className={`map-marker ${region.region === selectedRegion ? "active" : ""}`}
                           onClick={() => selectRegion(region.region)}
                           style={{
-                            top: regionPositions[region.region].top,
-                            left: regionPositions[region.region].left,
+                            top: getMapPosition(region.region).top,
+                            left: getMapPosition(region.region).left,
                           }}
                         >
                           <span
@@ -653,7 +656,7 @@ export default function ExplorePage() {
                     </div>
 
                     <div className="bottom-summary">
-                      {(expandedGroup ? visibleMapMarkers : articleSortedRegions).map((region) => (
+                      {(mapFocusRegion ? detailRegionsByGroup[mapFocusRegion] : articleSortedRegions).map((region) => (
                         <button
                           key={region.region}
                           type="button"

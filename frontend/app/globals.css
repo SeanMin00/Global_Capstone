@@ -220,6 +220,71 @@ input {
   background: rgba(255, 255, 255, 0.08);
 }
 
+.map-detail-toolbar {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  margin-top: 14px;
+  margin-bottom: 18px;
+}
+
+.map-back-button {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #dbeafe;
+  padding: 10px 14px;
+  cursor: pointer;
+}
+
+.map-detail-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 10px 14px;
+}
+
+.map-detail-meta strong {
+  font-size: 0.95rem;
+}
+
+.map-detail-meta span {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.map-detail-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.map-detail-tab {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 50px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  padding: 10px 14px;
+  cursor: pointer;
+}
+
+.map-detail-tab strong {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.map-detail-tab.active {
+  background: rgba(255, 255, 255, 0.08);
+}
+
 .expandable-tab-group {
   display: flex;
   align-items: stretch;
@@ -758,6 +823,10 @@ input {
 
   .news-panel {
     order: -1;
+  }
+
+  .map-detail-toolbar {
+    grid-template-columns: 1fr;
   }
 }
 
