@@ -18,40 +18,13 @@ import {
   STOCK_RANGES,
   type StockRange,
 } from "./stock-chart-utils";
-
-type QuoteResponse = {
-  ticker: string;
-  company_name: string;
-  current_price: number;
-  previous_close: number;
-  day_change: number;
-  day_change_pct: number;
-  currency: string | null;
-  exchange: string | null;
-};
-
-type ChartPoint = {
-  date: string;
-  open: number | null;
-  high: number | null;
-  low: number | null;
-  close: number | null;
-  volume: number | null;
-};
-
-type ChartResponse = {
-  ticker: string;
-  period: string;
-  interval: string;
-  data: ChartPoint[];
-};
+import { fetchChart, fetchQuote, type ChartResponse, type QuoteResponse } from "./stock-api";
 
 type Props = {
   initialTicker: string;
   embedded?: boolean;
 };
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 const FEATURED_TICKERS = ["AAPL", "MSFT", "NVDA", "TSLA", "TSM", "ASML", "005930.KS"];
 
 function formatPrice(value: number | null | undefined, currency: string | null | undefined) {
@@ -96,29 +69,13 @@ function StockChartContent({ initialTicker, embedded = false }: Props) {
       try {
         setLoading(true);
         setError("");
-
-        const quoteUrl = `${API_BASE_URL}/api/quote?ticker=${encodeURIComponent(activeTicker)}`;
-        const chartUrl =
-          `${API_BASE_URL}/api/chart?ticker=${encodeURIComponent(activeTicker)}` +
-          `&period=${encodeURIComponent(rangeQuery.period)}&interval=${encodeURIComponent(rangeQuery.interval)}`;
-
         const [quoteResponse, chartResponse] = await Promise.all([
-          fetch(quoteUrl),
-          fetch(chartUrl),
+          fetchQuote(activeTicker),
+          fetchChart(activeTicker, rangeQuery),
         ]);
 
-        if (!quoteResponse.ok) {
-          const payload = (await quoteResponse.json().catch(() => null)) as { detail?: string } | null;
-          throw new Error(payload?.detail ?? `Quote request failed with ${quoteResponse.status}`);
-        }
-
-        if (!chartResponse.ok) {
-          const payload = (await chartResponse.json().catch(() => null)) as { detail?: string } | null;
-          throw new Error(payload?.detail ?? `Chart request failed with ${chartResponse.status}`);
-        }
-
-        setQuote((await quoteResponse.json()) as QuoteResponse);
-        setChart((await chartResponse.json()) as ChartResponse);
+        setQuote(quoteResponse as QuoteResponse);
+        setChart(chartResponse as ChartResponse);
       } catch (fetchError) {
         setQuote(null);
         setChart(null);

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import SentimentWorldMap from "../sentiment-world-map";
 import StockDetailView from "../stocks/stock-detail-view";
+import PortfolioEfficiencyPanel from "../portfolio/portfolio-efficiency-panel";
 
 type RegionArticle = {
   title: string;
@@ -2254,25 +2255,20 @@ export default function ExplorePage() {
                 <div className="chart-tab-shell">
                   <StockDetailView initialTicker="AAPL" embedded />
                 </div>
+              ) : viewMode === "pf" ? (
+                <PortfolioEfficiencyPanel profilePreferences={profilePreferences} />
               ) : (
                 <div className="explore-grid">
                   <section className="map-panel">
                     <div className="map-header">
                       <div>
-                        <p className="eyebrow">{viewMode === "pf" ? "PF view" : "Personal view"}</p>
-                        <h2>{viewMode === "pf" ? "Portfolio workspace" : "Profile onboarding"}</h2>
+                        <p className="eyebrow">Personal view</p>
+                        <h2>Profile onboarding</h2>
                       </div>
                       <div className="map-chip">Coming soon</div>
                     </div>
 
-                    {viewMode === "pf" ? (
-                      <div
-                        className="state-card"
-                        style={{ minHeight: "420px", display: "grid", placeItems: "center" }}
-                      >
-                        PF tab is ready. We can build portfolio-specific UI here next.
-                      </div>
-                    ) : profileStep === "login" ? (
+                    {profileStep === "login" ? (
                       <div className="profile-card">
                         <div className="profile-card-header">
                           <p className="eyebrow">Step 1</p>
@@ -2499,97 +2495,91 @@ export default function ExplorePage() {
                   </section>
 
                   <aside className="news-panel">
-                    {viewMode === "pf" ? (
-                      <div className="state-card" style={{ minHeight: "100%" }}>
-                        Empty portfolio panel placeholder.
+                    <div className="profile-preview-card">
+                      <div className="profile-preview-header">
+                        <p className="eyebrow">Profile Preview</p>
+                        <h3>{profileForm.name || "New user"}</h3>
+                        <p>{profileForm.email || "No email entered yet"}</p>
                       </div>
-                    ) : (
-                      <div className="profile-preview-card">
-                        <div className="profile-preview-header">
-                          <p className="eyebrow">Profile Preview</p>
-                          <h3>{profileForm.name || "New user"}</h3>
-                          <p>{profileForm.email || "No email entered yet"}</p>
-                        </div>
 
-                        <div className="profile-preview-hero">
-                          <div className="profile-preview-hero-top">
-                            <div className="profile-preview-pill">Inputs ready</div>
-                            <div className="profile-preview-score">
-                              <span>Profile fit</span>
-                              <strong>{riskAversionLabel(profilePreferences.riskAversion)}</strong>
-                            </div>
-                          </div>
-                          <div className="profile-preview-hero-grid">
-                            <div className="profile-mini-card">
-                              <span>Risk posture</span>
-                              <strong>{riskPostureLabel(profilePreferences.riskAversion)}</strong>
-                            </div>
-                            <div className="profile-mini-card">
-                              <span>Horizon</span>
-                              <strong>{humanizeProfileValue(profilePreferences.investmentHorizon)}</strong>
-                            </div>
-                            <div className="profile-mini-card">
-                              <span>Cash flow</span>
-                              <strong>{humanizeProfileValue(profilePreferences.monthlyCashFlowStability)}</strong>
-                            </div>
+                      <div className="profile-preview-hero">
+                        <div className="profile-preview-hero-top">
+                          <div className="profile-preview-pill">Inputs ready</div>
+                          <div className="profile-preview-score">
+                            <span>Profile fit</span>
+                            <strong>{riskAversionLabel(profilePreferences.riskAversion)}</strong>
                           </div>
                         </div>
-
-                        <div className="profile-preview-section">
-                          <div className="profile-section-header">
-                            <strong>Investor setup</strong>
-                            <span>Core identity and objective</span>
+                        <div className="profile-preview-hero-grid">
+                          <div className="profile-mini-card">
+                            <span>Risk posture</span>
+                            <strong>{riskPostureLabel(profilePreferences.riskAversion)}</strong>
                           </div>
-                          <div className="profile-summary-list">
-                            <div className="profile-summary-row">
-                              <span>Goal</span>
-                              <strong>{humanizeProfileValue(profilePreferences.investmentGoal)}</strong>
-                            </div>
-                            <div className="profile-summary-row">
-                              <span>Occupation</span>
-                              <strong>{humanizeProfileValue(profilePreferences.occupation)}</strong>
-                            </div>
-                            <div className="profile-summary-row">
-                              <span>Cash flow stability</span>
-                              <strong>
-                                {humanizeProfileValue(profilePreferences.monthlyCashFlowStability)}
-                              </strong>
-                            </div>
+                          <div className="profile-mini-card">
+                            <span>Horizon</span>
+                            <strong>{humanizeProfileValue(profilePreferences.investmentHorizon)}</strong>
                           </div>
-                        </div>
-
-                        <div className="profile-preview-section">
-                          <div className="profile-section-header">
-                            <strong>Risk settings</strong>
-                            <span>How conservative or aggressive this investor may be</span>
+                          <div className="profile-mini-card">
+                            <span>Cash flow</span>
+                            <strong>{humanizeProfileValue(profilePreferences.monthlyCashFlowStability)}</strong>
                           </div>
-                          <div className="profile-summary-list">
-                            <div className="profile-summary-row">
-                              <span>Risk aversion</span>
-                              <strong>{profilePreferences.riskAversion}</strong>
-                            </div>
-                            <div className="profile-summary-row">
-                              <span>Loss tolerance</span>
-                              <strong>{profilePreferences.lossTolerance}%</strong>
-                            </div>
-                            <div className="profile-summary-row">
-                              <span>Interpretation</span>
-                              <strong>{lossToleranceLabel(profilePreferences.lossTolerance)}</strong>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="profile-insight-card">
-                          <span className="profile-insight-label">Interpretation</span>
-                          <strong>{riskPostureLabel(profilePreferences.riskAversion)}</strong>
-                          <p>
-                            {lossToleranceLabel(profilePreferences.lossTolerance)} with{" "}
-                            {humanizeProfileValue(profilePreferences.monthlyCashFlowStability)} monthly cash flow
-                            stability.
-                          </p>
                         </div>
                       </div>
-                    )}
+
+                      <div className="profile-preview-section">
+                        <div className="profile-section-header">
+                          <strong>Investor setup</strong>
+                          <span>Core identity and objective</span>
+                        </div>
+                        <div className="profile-summary-list">
+                          <div className="profile-summary-row">
+                            <span>Goal</span>
+                            <strong>{humanizeProfileValue(profilePreferences.investmentGoal)}</strong>
+                          </div>
+                          <div className="profile-summary-row">
+                            <span>Occupation</span>
+                            <strong>{humanizeProfileValue(profilePreferences.occupation)}</strong>
+                          </div>
+                          <div className="profile-summary-row">
+                            <span>Cash flow stability</span>
+                            <strong>
+                              {humanizeProfileValue(profilePreferences.monthlyCashFlowStability)}
+                            </strong>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="profile-preview-section">
+                        <div className="profile-section-header">
+                          <strong>Risk settings</strong>
+                          <span>How conservative or aggressive this investor may be</span>
+                        </div>
+                        <div className="profile-summary-list">
+                          <div className="profile-summary-row">
+                            <span>Risk aversion</span>
+                            <strong>{profilePreferences.riskAversion}</strong>
+                          </div>
+                          <div className="profile-summary-row">
+                            <span>Loss tolerance</span>
+                            <strong>{profilePreferences.lossTolerance}%</strong>
+                          </div>
+                          <div className="profile-summary-row">
+                            <span>Interpretation</span>
+                            <strong>{lossToleranceLabel(profilePreferences.lossTolerance)}</strong>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="profile-insight-card">
+                        <span className="profile-insight-label">Interpretation</span>
+                        <strong>{riskPostureLabel(profilePreferences.riskAversion)}</strong>
+                        <p>
+                          {lossToleranceLabel(profilePreferences.lossTolerance)} with{" "}
+                          {humanizeProfileValue(profilePreferences.monthlyCashFlowStability)} monthly cash flow
+                          stability.
+                        </p>
+                      </div>
+                    </div>
                   </aside>
                 </div>
               )}
