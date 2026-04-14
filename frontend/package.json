@@ -9,7 +9,8 @@
   "dependencies": {
     "next": "15.5.0",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "recharts": "2.15.4"
   },
   "devDependencies": {
     "@types/node": "22.15.21",
@@ -18,4 +19,3 @@
     "typescript": "5.8.3"
   }
 }
-

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import SentimentWorldMap from "../sentiment-world-map";
+import StockDetailView from "../stocks/stock-detail-view";
 
 type RegionArticle = {
   title: string;
@@ -49,7 +50,7 @@ type MarketRiskSnapshot = {
 
 type RiskLevel = MarketRiskSnapshot["risk_level"] | null;
 
-type ViewMode = "map" | "chart" | "pf" | "personal";
+type ViewMode = "map" | "explorer" | "chart" | "pf" | "personal";
 type ChartMode = "heatmap" | "structure";
 type StructureViewMode = "country" | "segment";
 type TrendType = "Reactive" | "Structural";
@@ -794,17 +795,21 @@ function formatPercent(value: number | null) {
 
 function viewModeLabel(viewMode: ViewMode) {
   if (viewMode === "map") return "Map + News Panel";
-  if (viewMode === "chart") return "Stock Heatmap";
+  if (viewMode === "explorer") return "Market Explorer";
+  if (viewMode === "chart") return "Chart Workspace";
   if (viewMode === "pf") return "PF Workspace";
   return "Personal Page";
 }
 
 function viewModeCopy(viewMode: ViewMode) {
   if (viewMode === "map") {
-    return "Click a region on the map. The right panel updates with related headlines, and sentiment changes the marker color.";
+    return "Click a region on the map. The right panel updates with related headlines, while sentiment shifts marker color.";
+  }
+  if (viewMode === "explorer") {
+    return "Explore markets through heatmaps and structure views. Compare countries, segments, and leading companies from one workspace.";
   }
   if (viewMode === "chart") {
-    return "Switch to chart mode for a Finviz-style stock heatmap. It is frontend-only for now and grouped by the selected region.";
+    return "Chart workspace placeholder. We can build chart-specific analytics and visual studies here next.";
   }
   if (viewMode === "pf") {
     return "Portfolio workspace placeholder. We can connect holdings, watchlists, and personal risk tools here next.";
@@ -895,7 +900,7 @@ export default function ExplorePage() {
   const [selectedStructureSegment, setSelectedStructureSegment] = useState("");
   const [compareTickers, setCompareTickers] = useState<string[]>([]);
 
-  const needsMarketData = viewMode === "map" || viewMode === "chart";
+  const needsMarketData = viewMode === "map" || viewMode === "explorer";
 
   useEffect(() => {
     if (!needsMarketData || regionsLoaded) {
@@ -935,7 +940,7 @@ export default function ExplorePage() {
   }, [needsMarketData, regionsLoaded]);
 
   useEffect(() => {
-    if (viewMode !== "chart") {
+    if (viewMode !== "explorer") {
       return;
     }
 
@@ -945,7 +950,7 @@ export default function ExplorePage() {
   }, [selectedRegion, viewMode]);
 
   useEffect(() => {
-    if (viewMode !== "chart") {
+    if (viewMode !== "explorer") {
       return;
     }
 
@@ -955,7 +960,7 @@ export default function ExplorePage() {
   }, [chartMode, viewMode]);
 
   useEffect(() => {
-    if (viewMode === "chart") {
+    if (viewMode === "explorer") {
       setMapFocusRegion(null);
       return;
     }
@@ -1218,7 +1223,7 @@ export default function ExplorePage() {
   );
 
   useEffect(() => {
-    if (viewMode !== "chart" || chartMode !== "structure") {
+    if (viewMode !== "explorer" || chartMode !== "structure") {
       return;
     }
 
@@ -1295,7 +1300,7 @@ export default function ExplorePage() {
   const [selectedGlobalSegment, setSelectedGlobalSegment] = useState("");
 
   useEffect(() => {
-    if (viewMode !== "chart" || chartMode !== "structure") {
+    if (viewMode !== "explorer" || chartMode !== "structure") {
       return;
     }
 
@@ -1311,7 +1316,7 @@ export default function ExplorePage() {
   }, [chartMode, selectedCountrySegments, selectedStructureSegment, viewMode]);
 
   useEffect(() => {
-    if (viewMode !== "chart" || chartMode !== "structure" || structureViewMode !== "segment") {
+    if (viewMode !== "explorer" || chartMode !== "structure" || structureViewMode !== "segment") {
       return;
     }
 
@@ -1380,7 +1385,7 @@ export default function ExplorePage() {
   }
 
   function selectRegion(region: RegionCode) {
-    if (viewMode === "chart") {
+    if (viewMode === "explorer") {
       setMapFocusRegion(null);
       setSelectedRegion(getParentRegion(region));
       return;
@@ -1441,6 +1446,13 @@ export default function ExplorePage() {
             </button>
             <button
               type="button"
+              className={`rail-button ${viewMode === "explorer" ? "active" : ""}`}
+              onClick={() => setViewMode("explorer")}
+            >
+              Explorer
+            </button>
+            <button
+              type="button"
               className={`rail-button ${viewMode === "chart" ? "active" : ""}`}
               onClick={() => setViewMode("chart")}
             >
@@ -1478,9 +1490,9 @@ export default function ExplorePage() {
 
           {!loading && regions.length > 0 ? (
             <>
-              {viewMode === "map" || (viewMode === "chart" && !(chartMode === "structure" && structureViewMode === "segment")) ? (
+              {viewMode === "map" || (viewMode === "explorer" && !(chartMode === "structure" && structureViewMode === "segment")) ? (
                 <div className="region-tabs">
-                  {viewMode === "chart"
+                  {viewMode === "explorer"
                     ? sortedRegions.map((region) => (
                         <button
                           key={region.region}
@@ -1736,12 +1748,12 @@ export default function ExplorePage() {
                     )}
                   </aside>
                 </div>
-              ) : viewMode === "chart" ? (
+              ) : viewMode === "explorer" ? (
                 <div className="explore-grid">
                   <section className="map-panel">
                     <div className="map-header">
                       <div>
-                        <p className="eyebrow">Chart view</p>
+                        <p className="eyebrow">Explorer view</p>
                         <h2>{chartMode === "heatmap" ? "Regional stock heatmap" : "Market structure explorer"}</h2>
                       </div>
                       <div className="chart-mode-toggle">
@@ -2237,6 +2249,10 @@ export default function ExplorePage() {
                       <div className="state-card">No stock or segment selected.</div>
                     )}
                   </aside>
+                </div>
+              ) : viewMode === "chart" ? (
+                <div className="chart-tab-shell">
+                  <StockDetailView initialTicker="AAPL" embedded />
                 </div>
               ) : (
                 <div className="explore-grid">

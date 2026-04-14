@@ -22,6 +22,7 @@ from market_risk import (
     market_risk_ready,
     refresh_market_risk_pipeline,
 )
+from stock_data import get_chart_payload, get_quote_payload
 
 load_dotenv(Path(__file__).with_name(".env"))
 
@@ -1118,8 +1119,32 @@ def articles(
         raise HTTPException(
             status_code=503,
             detail="SUPABASE_DB_URL is required before reading stored articles.",
-        )
+    )
     return load_articles_from_db(region=region, limit=limit)
+
+
+@app.get("/api/quote")
+def quote(ticker: str = Query(..., description="Ticker symbol such as AAPL")) -> dict[str, Any]:
+    try:
+        return get_quote_payload(ticker)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Failed to fetch quote data: {exc}") from exc
+
+
+@app.get("/api/chart")
+def chart(
+    ticker: str = Query(..., description="Ticker symbol such as AAPL"),
+    period: str = Query("1mo", description="Chart period such as 1d, 5d, 1mo, 6mo, 1y, max"),
+    interval: str = Query("1d", description="Chart interval such as 5m, 30m, 1d, 1wk"),
+) -> dict[str, Any]:
+    try:
+        return get_chart_payload(ticker, period=period, interval=interval)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Failed to fetch chart data: {exc}") from exc
 
 
 @app.post("/api/market-risk/refresh")

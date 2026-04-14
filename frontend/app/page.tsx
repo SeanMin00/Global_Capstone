@@ -13,8 +13,10 @@ export default function HomePage() {
         <Link href="/explore" className="primary-link">
           Open Explore
         </Link>
+        <Link href="/stocks/AAPL" className="primary-link" style={{ marginLeft: 12 }}>
+          Open AAPL Chart
+        </Link>
       </div>
     </main>
   );
 }
-
