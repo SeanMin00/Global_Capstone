@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import SentimentWorldMap from "../sentiment-world-map";
 
 type RegionArticle = {
   title: string;
@@ -45,6 +46,8 @@ type MarketRiskSnapshot = {
   last_updated_timestamp: string;
   short_explanation: string;
 };
+
+type RiskLevel = MarketRiskSnapshot["risk_level"] | null;
 
 type ViewMode = "map" | "chart" | "pf" | "personal";
 type ChartMode = "heatmap" | "structure";
@@ -845,6 +848,20 @@ function scaleBubbleSize(value: number, minValue: number, maxValue: number, minS
   return Math.round(minSize + normalized * (maxSize - minSize));
 }
 
+function riskLevelFromScore(score: number | null): RiskLevel {
+  if (score === null || Number.isNaN(score)) return null;
+  if (score >= 65) return "high";
+  if (score >= 35) return "moderate";
+  return "low";
+}
+
+function riskToneColor(level: RiskLevel) {
+  if (level === "low") return "#22c55e";
+  if (level === "moderate") return "#f59e0b";
+  if (level === "high") return "#ef4444";
+  return "#64748b";
+}
+
 export default function ExplorePage() {
   const [regions, setRegions] = useState<RegionSummary[]>([]);
   const [selectedRegion, setSelectedRegion] = useState<RegionCode>("EU");
@@ -857,6 +874,7 @@ export default function ExplorePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [marketRisk, setMarketRisk] = useState<MarketRiskSnapshot | null>(null);
+  const [allMarketRisk, setAllMarketRisk] = useState<MarketRiskSnapshot[]>([]);
   const [marketRiskLoading, setMarketRiskLoading] = useState(false);
   const [marketRiskError, setMarketRiskError] = useState("");
   const [regionsLoaded, setRegionsLoaded] = useState(false);
@@ -974,6 +992,17 @@ export default function ExplorePage() {
   }, [selectedRegion]);
 
   useEffect(() => {
+    async function loadAllMarketRisk() {
+      try {
+        const response = await fetch("http://localhost:8000/api/market-risk");
+        if (!response.ok) return;
+        const payload = (await response.json()) as MarketRiskSnapshot[];
+        setAllMarketRisk(payload);
+      } catch {
+        setAllMarketRisk([]);
+      }
+    }
+
     async function loadMarketRisk() {
       if (!MARKET_RISK_COUNTRIES.has(selectedRegion)) {
         setMarketRisk(null);
@@ -1003,6 +1032,7 @@ export default function ExplorePage() {
     }
 
     if (viewMode === "map") {
+      loadAllMarketRisk();
       loadMarketRisk();
     }
   }, [selectedRegion, viewMode]);
@@ -1064,30 +1094,85 @@ export default function ExplorePage() {
     return detailRegionsByGroup[mapFocusRegion];
   }, [baseMapRegions, detailRegionsByGroup, mapFocusRegion]);
 
-  const mapBubbleMetrics = useMemo(() => {
-    const positiveCaps = currentMapRegions
-      .map((region) => getRegionMarketCap(region.region))
-      .filter((marketCap) => marketCap > 0);
-    const minCap = positiveCaps.length ? Math.min(...positiveCaps) : 0;
-    const maxCap = positiveCaps.length ? Math.max(...positiveCaps) : 0;
-    const minSize = mapFocusRegion ? 140 : 220;
-    const maxSize = mapFocusRegion ? 280 : 420;
+  const riskLookup = useMemo(
+    () => new Map(allMarketRisk.map((item) => [item.iso_code as RegionCode, item])),
+    [allMarketRisk],
+  );
 
-    return new Map(
-      currentMapRegions.map((region) => {
-        const marketCap = getRegionMarketCap(region.region);
-        const size = scaleBubbleSize(marketCap, minCap, maxCap, minSize, maxSize);
+  const aggregateRiskForRegion = useMemo(() => {
+    function buildAggregate(region: RegionCode) {
+      if (ALL_DETAIL_REGIONS.includes(region)) {
+        const snapshot = riskLookup.get(region);
+        return {
+          score: snapshot?.market_risk_score ?? null,
+          level: (snapshot?.risk_level ?? null) as RiskLevel,
+        };
+      }
 
-        return [
-          region.region,
-          {
-            marketCap,
-            size,
-          },
-        ];
+      const members = DETAIL_REGIONS[region as BaseRegion] ?? [];
+      const snapshots = members
+        .map((member) => riskLookup.get(member))
+        .filter((item): item is MarketRiskSnapshot => Boolean(item));
+
+      if (!snapshots.length) {
+        return { score: null, level: null };
+      }
+
+      const avgScore =
+        snapshots.reduce((sum, item) => sum + item.market_risk_score, 0) / snapshots.length;
+
+      return {
+        score: avgScore,
+        level: riskLevelFromScore(avgScore) as RiskLevel,
+      };
+    }
+
+    return new Map<RegionCode, { score: number | null; level: RiskLevel }>(
+      [...BASE_REGIONS, ...ALL_DETAIL_REGIONS].map((region) => [region, buildAggregate(region)]),
+    );
+  }, [riskLookup]);
+
+  const mapRegionSegments = useMemo(() => {
+    function topSegmentsForCountries(countries: Exclude<RegionCode, BaseRegion>[]) {
+      const grouped = new Map<string, { total: number; count: number }>();
+
+      for (const country of countries) {
+        const segments = structureData[country] ?? [];
+        for (const segment of segments) {
+          const current = grouped.get(segment.segment) ?? { total: 0, count: 0 };
+          grouped.set(segment.segment, {
+            total: current.total + segment.avgMarketCap,
+            count: current.count + 1,
+          });
+        }
+      }
+
+      return [...grouped.entries()]
+        .sort((a, b) => b[1].total - a[1].total)
+        .slice(0, 3)
+        .map(([name]) => name);
+    }
+
+    return new Map<RegionCode, string[]>(
+      [...BASE_REGIONS, ...ALL_DETAIL_REGIONS].map((region) => {
+        if (ALL_DETAIL_REGIONS.includes(region)) {
+          const detailRegion = region as Exclude<RegionCode, BaseRegion>;
+          return [region, (structureData[detailRegion] ?? []).slice(0, 3).map((item: StructureSegment) => item.segment)];
+        }
+
+        return [region, topSegmentsForCountries(DETAIL_REGIONS[region as BaseRegion] as Exclude<RegionCode, BaseRegion>[])];
       }),
     );
-  }, [currentMapRegions, mapFocusRegion]);
+  }, []);
+
+  const mapSignalRegions = useMemo(
+    () =>
+      currentMapRegions.slice(0, 4).map((region) => ({
+        region,
+        risk: aggregateRiskForRegion.get(region.region) ?? { score: null, level: null },
+      })),
+    [aggregateRiskForRegion, currentMapRegions],
+  );
 
   const regionStocks = useMemo(
     () => heatmapStocks.filter((stock) => stock.region === selectedRegion),
@@ -1124,6 +1209,14 @@ export default function ExplorePage() {
     [selectedRegion],
   );
 
+  const globalStructureCountries = useMemo(
+    () =>
+      ALL_DETAIL_REGIONS.filter(
+        (code): code is Exclude<RegionCode, BaseRegion> => Boolean(structureData[code as Exclude<RegionCode, BaseRegion>]),
+      ),
+    [],
+  );
+
   useEffect(() => {
     if (viewMode !== "chart" || chartMode !== "structure") {
       return;
@@ -1147,7 +1240,7 @@ export default function ExplorePage() {
   const aggregatedSegments = useMemo(() => {
     const grouped = new Map<string, AggregatedSegment>();
 
-    for (const country of structureCountries) {
+    for (const country of globalStructureCountries) {
       const segments = structureData[country as Exclude<RegionCode, BaseRegion>] ?? [];
 
       for (const segment of segments) {
@@ -1197,7 +1290,7 @@ export default function ExplorePage() {
     }
 
     return [...grouped.values()].sort((a, b) => b.avgMarketCap - a.avgMarketCap);
-  }, [structureCountries]);
+  }, [globalStructureCountries]);
 
   const [selectedGlobalSegment, setSelectedGlobalSegment] = useState("");
 
@@ -1385,7 +1478,7 @@ export default function ExplorePage() {
 
           {!loading && regions.length > 0 ? (
             <>
-              {viewMode === "map" || viewMode === "chart" ? (
+              {viewMode === "map" || (viewMode === "chart" && !(chartMode === "structure" && structureViewMode === "segment")) ? (
                 <div className="region-tabs">
                   {viewMode === "chart"
                     ? sortedRegions.map((region) => (
@@ -1475,64 +1568,24 @@ export default function ExplorePage() {
                     ) : null}
 
                     <div className="map-stage">
-                      {currentMapRegions.map((region) => {
-                        const bubble = mapBubbleMetrics.get(region.region);
-                        if (!bubble) {
-                          return null;
-                        }
+                      <div className="map-scanline" />
+                      <div className="map-grid-overlay" />
+                      <SentimentWorldMap
+                        selectedRegion={selectedRegion}
+                        mapFocusRegion={mapFocusRegion}
+                        mapRegionLookup={mapRegionLookup}
+                        detailRegionsByGroup={detailRegionsByGroup}
+                        aggregateRiskForRegion={aggregateRiskForRegion}
+                        mapRegionSegments={mapRegionSegments}
+                        onSelectRegion={selectRegion}
+                      />
 
-                        return (
-                          <div
-                            key={`${region.region}-bubble`}
-                            className={`map-bubble ${mapFocusRegion ? "detail-bubble" : "base-bubble"} ${
-                              region.region === selectedRegion ? "active" : ""
-                            }`}
-                            style={{
-                              top: getMapPosition(region.region).top,
-                              left: getMapPosition(region.region).left,
-                              width: `${bubble.size}px`,
-                              height: `${bubble.size}px`,
-                              background: sentimentBackground(region.sentiment),
-                              borderColor:
-                                region.region === selectedRegion
-                                  ? "rgba(255,255,255,0.2)"
-                                  : "rgba(56, 189, 248, 0.16)",
-                              boxShadow:
-                                region.region === selectedRegion
-                                  ? "0 0 0 1px rgba(255,255,255,0.08), 0 30px 80px rgba(0,0,0,0.24), inset 0 0 60px rgba(255,255,255,0.05)"
-                                  : "0 22px 60px rgba(0,0,0,0.16), inset 0 0 40px rgba(255,255,255,0.04)",
-                            }}
-                          >
-                            <span className="bubble-cap">{Math.round(bubble.marketCap)}B</span>
-                          </div>
-                        );
-                      })}
-
-                      {currentMapRegions.map((region) => (
-                        <button
-                          key={region.region}
-                          type="button"
-                          className={`map-marker ${region.region === selectedRegion ? "active" : ""}`}
-                          onClick={() => selectRegion(region.region)}
-                          style={{
-                            top: getMapPosition(region.region).top,
-                            left: getMapPosition(region.region).left,
-                          }}
-                        >
-                          <span
-                            className="marker-glow"
-                            style={{ background: sentimentBackground(region.sentiment) }}
-                          />
-                          <span
-                            className="marker-core"
-                            style={{ background: sentimentGradient(region.sentiment) }}
-                          />
-                          <span className="marker-label">
-                            <strong>{regionLabels[region.region]}</strong>
-                            <small>{sentimentLabel(region.sentiment)}</small>
-                          </span>
-                        </button>
-                      ))}
+                      <div className="map-legend">
+                        <span className="legend-heading">Market Risk</span>
+                        <div className="legend-chip"><span className="legend-dot low" />Low</div>
+                        <div className="legend-chip"><span className="legend-dot moderate" />Moderate</div>
+                        <div className="legend-chip"><span className="legend-dot high" />High</div>
+                      </div>
                     </div>
 
                     <div className="bottom-summary">
@@ -1856,7 +1909,7 @@ export default function ExplorePage() {
                         <aside className="structure-column">
                           <div className="structure-column-header">
                             <span>Segments</span>
-                            <strong>{activeRegion?.region_name}</strong>
+                            <strong>Global View</strong>
                           </div>
                           <div className="structure-stack">
                             {aggregatedSegments.map((segment) => (
@@ -1880,7 +1933,7 @@ export default function ExplorePage() {
                               <div className="structure-hero-card">
                                 <div className="structure-hero-top">
                                   <div>
-                                    <span className="eyebrow">Segment Focus</span>
+                                    <span className="eyebrow">Global Segment Focus</span>
                                     <h3>{activeGlobalSegment.segment}</h3>
                                   </div>
                                   <span className={`trend-pill trend-${activeGlobalSegment.trendType.toLowerCase()}`}>
@@ -2100,7 +2153,7 @@ export default function ExplorePage() {
                       <>
                         <div className="news-header">
                           <div>
-                            <p className="eyebrow">{selectedRegion}</p>
+                            <p className="eyebrow">GLOBAL</p>
                             <h2>{activeGlobalSegment.segment}</h2>
                             <p className="news-subtitle">{activeGlobalSegment.trendSummary}</p>
                           </div>
@@ -2111,8 +2164,8 @@ export default function ExplorePage() {
 
                         <div className="news-metrics">
                           <div className="metric-box">
-                            <span>Region</span>
-                            <strong>{regionLabels[selectedRegion]}</strong>
+                            <span>Scope</span>
+                            <strong>Global</strong>
                           </div>
                           <div className="metric-box">
                             <span>Markets</span>
@@ -2131,11 +2184,10 @@ export default function ExplorePage() {
                         <div className="risk-summary-card">
                           <div className="risk-summary-header">
                             <strong>Top 3 Companies In Segment</strong>
-                            <span className="map-chip">{activeGlobalSegment.segment}</span>
+                            <span className="map-chip">Global {activeGlobalSegment.segment}</span>
                           </div>
                           <p className="risk-summary-copy">
-                            Cross-market view for {activeGlobalSegment.segment.toLowerCase()} inside{" "}
-                            {activeRegion?.region_name ?? regionLabels[selectedRegion]}.
+                            Cross-market view for {activeGlobalSegment.segment.toLowerCase()} across all tracked countries.
                           </p>
                           <div className="comparison-grid">
                             {activeGlobalSegment.companies.map((company) => (
