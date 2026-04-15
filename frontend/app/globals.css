@@ -1999,10 +1999,11 @@ select {
   transform: translate(-50%, 0);
 }
 
-.portfolio-summary-label {
+.portfolio-summary-card .portfolio-summary-label {
   display: inline-flex;
   align-items: center;
   gap: 7px;
+  width: fit-content;
 }
 
 .portfolio-summary-card small {

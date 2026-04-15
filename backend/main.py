@@ -1,8 +1,10 @@
+import csv
 import hashlib
 import os
 import re
 from collections import Counter, defaultdict
 from datetime import UTC, date, datetime
+from io import StringIO
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
@@ -61,6 +63,7 @@ GDELT_QUERY = os.getenv(
 GDELT_MAX_RECORDS = int(os.getenv("GDELT_MAX_RECORDS", "60"))
 RISK_FREE_SERIES_ID = "DGS3MO"
 RISK_FREE_SOURCE = "FRED - 3-Month Treasury Constant Maturity (DGS3MO)"
+RISK_FREE_CSV_URL = f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={RISK_FREE_SERIES_ID}"
 RISK_FREE_FALLBACK_RATE = float(os.getenv("RISK_FREE_RATE_FALLBACK", "0.04"))
 
 def parse_cors_origins() -> list[str]:
@@ -161,11 +164,61 @@ def risk_free_fallback_payload(reason: str) -> dict[str, Any]:
     }
 
 
+def live_risk_free_payload(*, raw_value: str, observation_date: str | None, note: str) -> dict[str, Any] | None:
+    if not raw_value or raw_value == ".":
+        return None
+
+    try:
+        # FRED returns DGS3MO as percent per annum, e.g. 5.21.
+        # The frontend analytics expects decimal form, e.g. 0.0521.
+        rate_percent = float(raw_value)
+        rate = rate_percent / 100
+    except ValueError:
+        return None
+
+    return {
+        "rate": rate,
+        "rate_percent": round(rate_percent, 4),
+        "source": RISK_FREE_SOURCE,
+        "series_id": RISK_FREE_SERIES_ID,
+        "as_of": observation_date,
+        "last_updated_timestamp": now_utc().isoformat(),
+        "is_fallback": False,
+        "note": note,
+    }
+
+
+async def fetch_risk_free_rate_from_csv() -> dict[str, Any] | None:
+    # Official FRED graph CSV does not require an API key, so the deployed demo
+    # can still use a live DGS3MO value when FRED_API_KEY is not configured.
+    try:
+        async with httpx.AsyncClient(timeout=12) as client:
+            response = await client.get(RISK_FREE_CSV_URL)
+            response.raise_for_status()
+    except Exception:
+        return None
+
+    rows = list(csv.DictReader(StringIO(response.text)))
+    for row in reversed(rows):
+        payload = live_risk_free_payload(
+            raw_value=row.get(RISK_FREE_SERIES_ID, ""),
+            observation_date=row.get("observation_date") or row.get("DATE"),
+            note="Live FRED value from public CSV.",
+        )
+        if payload:
+            return payload
+
+    return None
+
+
 async def fetch_risk_free_rate_payload() -> dict[str, Any]:
     # DGS3MO is used as the MVP risk-free proxy because short-term U.S.
     # Treasury yields are a common practical approximation for near-zero-risk USD returns.
     if not fred_api_key():
-        return risk_free_fallback_payload("FRED_API_KEY is not configured.")
+        csv_payload = await fetch_risk_free_rate_from_csv()
+        if csv_payload:
+            return csv_payload
+        return risk_free_fallback_payload("FRED_API_KEY is not configured and public FRED CSV fetch failed.")
 
     try:
         async with httpx.AsyncClient(timeout=12) as client:
@@ -182,31 +235,24 @@ async def fetch_risk_free_rate_payload() -> dict[str, Any]:
             response.raise_for_status()
             payload = response.json()
     except Exception as exc:
+        csv_payload = await fetch_risk_free_rate_from_csv()
+        if csv_payload:
+            return csv_payload
         return risk_free_fallback_payload(f"Live FRED fetch failed: {exc}")
 
     observations = payload.get("observations", [])
     for observation in observations:
-        raw_value = observation.get("value")
-        if raw_value and raw_value != ".":
-            try:
-                # FRED returns DGS3MO as percent per annum, e.g. 5.21.
-                # The frontend analytics expects decimal form, e.g. 0.0521.
-                rate_percent = float(raw_value)
-                rate = rate_percent / 100
-            except ValueError:
-                continue
+        live_payload = live_risk_free_payload(
+            raw_value=observation.get("value", ""),
+            observation_date=observation.get("date"),
+            note="Live FRED API value.",
+        )
+        if live_payload:
+            return live_payload
 
-            return {
-                "rate": rate,
-                "rate_percent": round(rate_percent, 4),
-                "source": RISK_FREE_SOURCE,
-                "series_id": RISK_FREE_SERIES_ID,
-                "as_of": observation.get("date"),
-                "last_updated_timestamp": now_utc().isoformat(),
-                "is_fallback": False,
-                "note": "Live FRED value.",
-            }
-
+    csv_payload = await fetch_risk_free_rate_from_csv()
+    if csv_payload:
+        return csv_payload
     return risk_free_fallback_payload("FRED returned no usable DGS3MO observation.")
 
 
