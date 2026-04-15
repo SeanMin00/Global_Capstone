@@ -1807,6 +1807,27 @@ select {
   padding: 8px 12px;
 }
 
+.portfolio-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.portfolio-toggle-help {
+  width: 16px;
+  height: 16px;
+  font-size: 0.66rem;
+}
+
+.portfolio-toggle-help .info-tooltip-card {
+  top: calc(100% + 12px);
+  left: auto;
+  right: 0;
+  width: min(300px, 72vw);
+  text-align: left;
+  white-space: normal;
+}
+
 .portfolio-toggle.active,
 .portfolio-chip-button:hover {
   border-color: rgba(217, 255, 63, 0.26);

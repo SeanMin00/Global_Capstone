@@ -97,6 +97,15 @@ function PortfolioTooltip({
   );
 }
 
+function ToggleHelp({ children }: { children: string }) {
+  return (
+    <span className="info-tooltip portfolio-toggle-help" tabIndex={0} onClick={(event) => event.stopPropagation()}>
+      ?
+      <span className="info-tooltip-card">{children}</span>
+    </span>
+  );
+}
+
 export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) {
   const [portfolioAssets, setPortfolioAssets] = useState<PortfolioAssetInput[]>([
     { ticker: "AAPL", weight: 34 },
@@ -307,21 +316,33 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
           className={`portfolio-toggle ${showRandom ? "active" : ""}`}
           onClick={() => setShowRandom((current) => !current)}
         >
-          Show Random Portfolios
+          <span>Show Random Portfolios</span>
+          <ToggleHelp>
+            Random portfolios are thousands of test allocations made only from your selected tickers. The system changes
+            the weights between those same assets to show other possible risk-return outcomes.
+          </ToggleHelp>
         </button>
         <button
           type="button"
           className={`portfolio-toggle ${showFrontier ? "active" : ""}`}
           onClick={() => setShowFrontier((current) => !current)}
         >
-          Show Frontier
+          <span>Show Frontier</span>
+          <ToggleHelp>
+            The frontier highlights the best simulated portfolios for each risk level. Points below it may be taking more
+            risk than needed for their expected return.
+          </ToggleHelp>
         </button>
         <button
           type="button"
           className={`portfolio-toggle ${showCml ? "active" : ""}`}
           onClick={() => setShowCml((current) => !current)}
         >
-          Show CML
+          <span>Show CML</span>
+          <ToggleHelp>
+            The Capital Market Line connects the risk-free rate to the best Sharpe-ratio portfolio. It is a simple guide
+            for whether a portfolio has an efficient risk-return tradeoff.
+          </ToggleHelp>
         </button>
       </div>
 
