@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import os
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import httpx
@@ -11,8 +12,9 @@ from yfinance.exceptions import YFRateLimitError
 
 VALID_PERIODS = {"1d", "5d", "1mo", "6mo", "1y", "max"}
 VALID_INTERVALS = {"5m", "30m", "1d", "1wk"}
-CHART_CACHE_TTL_SECONDS = 60 * 15
+CHART_CACHE_TTL_SECONDS = int(os.getenv("STOCK_CHART_CACHE_TTL_SECONDS", str(60 * 60 * 6)))
 YAHOO_CHART_URL = "https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
+STOOQ_DAILY_URL = "https://stooq.com/q/d/l/"
 YAHOO_HEADERS = {
     "User-Agent": "Mozilla/5.0 (compatible; GlobalCapstoneMVP/1.0)",
     "Accept": "application/json",
@@ -200,16 +202,137 @@ def _set_cached_payload(key: str, payload: dict[str, Any]) -> dict[str, Any]:
     return payload
 
 
+def _get_stale_cached_payload(key: str) -> dict[str, Any] | None:
+    cached = _chart_cache.get(key)
+    return cached[1] if cached else None
+
+
+def _stooq_symbol(symbol: str) -> str:
+    normalized = symbol.upper()
+    overrides = {
+        "005930.KS": "005930.KR",
+    }
+    if normalized in overrides:
+        return overrides[normalized]
+    if "." in normalized:
+        return normalized.replace(".", ".").lower()
+    return f"{normalized.lower()}.us"
+
+
+def _period_cutoff(period: str) -> datetime | None:
+    now = datetime.now(timezone.utc)
+    if period == "1d":
+        return now - timedelta(days=7)
+    if period == "5d":
+        return now - timedelta(days=14)
+    if period == "1mo":
+        return now - timedelta(days=45)
+    if period == "6mo":
+        return now - timedelta(days=210)
+    if period == "1y":
+        return now - timedelta(days=380)
+    return None
+
+
+def _weekly_points(points: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    weekly: dict[tuple[int, int], dict[str, Any]] = {}
+    for point in points:
+        try:
+            parsed = datetime.fromisoformat(point["date"])
+        except (TypeError, ValueError):
+            continue
+        iso_year, iso_week, _ = parsed.isocalendar()
+        weekly[(iso_year, iso_week)] = point
+    return list(weekly.values())
+
+
+def _stooq_chart_points(symbol: str, *, period: str, interval: str) -> list[dict[str, Any]]:
+    if interval not in {"1d", "1wk"}:
+        return []
+
+    try:
+        response = httpx.get(
+            STOOQ_DAILY_URL,
+            params={"s": _stooq_symbol(symbol), "i": "d"},
+            headers=YAHOO_HEADERS,
+            timeout=12.0,
+        )
+        response.raise_for_status()
+    except Exception:
+        return []
+
+    lines = [line.strip() for line in response.text.splitlines() if line.strip()]
+    if len(lines) <= 1 or "No data" in response.text:
+        return []
+
+    cutoff = _period_cutoff(period)
+    points: list[dict[str, Any]] = []
+    for row in lines[1:]:
+        columns = row.split(",")
+        if len(columns) < 6:
+            continue
+
+        date_value, open_value, high_value, low_value, close_value, volume_value = columns[:6]
+        try:
+            parsed_date = datetime.fromisoformat(date_value).replace(tzinfo=timezone.utc)
+        except ValueError:
+            continue
+        if cutoff and parsed_date < cutoff:
+            continue
+
+        close = _safe_float(close_value)
+        if close is None:
+            continue
+
+        points.append(
+            {
+                "date": date_value,
+                "open": _safe_float(open_value),
+                "high": _safe_float(high_value),
+                "low": _safe_float(low_value),
+                "close": close,
+                "volume": _safe_int(volume_value),
+            }
+        )
+
+    if interval == "1wk":
+        return _weekly_points(points)
+    return points
+
+
+def _fallback_chart_points(symbol: str, *, period: str, interval: str) -> list[dict[str, Any]]:
+    return _yahoo_chart_points(symbol, period=period, interval=interval) or _stooq_chart_points(
+        symbol,
+        period=period,
+        interval=interval,
+    )
+
+
 def get_quote_payload(ticker: str) -> dict[str, Any]:
     symbol = normalize_ticker(ticker)
     stock = yf.Ticker(symbol)
-    history = _history_or_404(stock, period="5d", interval="1d")
+    fallback_points: list[dict[str, Any]] = []
+    try:
+        history = _history_or_404(stock, period="5d", interval="1d")
+    except HTTPException as exc:
+        if exc.status_code not in {404, 429}:
+            raise
+        history = None
+        fallback_points = _fallback_chart_points(symbol, period="5d", interval="1d")
+
     info = _safe_info(stock)
     fast_info = _safe_fast_info(stock)
 
-    close_series = history["Close"].dropna()
-    latest_close = _safe_float(close_series.iloc[-1]) if not close_series.empty else None
-    previous_history_close = _safe_float(close_series.iloc[-2]) if len(close_series) > 1 else latest_close
+    if history is not None:
+        close_series = history["Close"].dropna()
+        latest_close = _safe_float(close_series.iloc[-1]) if not close_series.empty else None
+        previous_history_close = _safe_float(close_series.iloc[-2]) if len(close_series) > 1 else latest_close
+        currency_from_history = history.attrs.get("currency")
+    else:
+        close_values = [point["close"] for point in fallback_points if point.get("close") is not None]
+        latest_close = _safe_float(close_values[-1]) if close_values else None
+        previous_history_close = _safe_float(close_values[-2]) if len(close_values) > 1 else latest_close
+        currency_from_history = "USD" if symbol.isalpha() else None
 
     current_price = _safe_float(fast_info.get("lastPrice")) or latest_close
     previous_close = _safe_float(fast_info.get("previousClose")) or previous_history_close or current_price
@@ -233,7 +356,7 @@ def get_quote_payload(ticker: str) -> dict[str, Any]:
     currency = (
         info.get("currency")
         or fast_info.get("currency")
-        or history.attrs.get("currency")
+        or currency_from_history
         or None
     )
     exchange = (
@@ -290,13 +413,13 @@ def get_chart_payload(ticker: str, *, period: str, interval: str) -> dict[str, A
             raise
 
     if not data_points:
-        data_points = _yahoo_chart_points(symbol, period=validated_period, interval=validated_interval)
+        data_points = _fallback_chart_points(symbol, period=validated_period, interval=validated_interval)
 
     if not data_points:
-        raise HTTPException(
-            status_code=404,
-            detail=f"No market data found for ticker '{symbol}'.",
-        )
+        stale = _get_stale_cached_payload(cache_key)
+        if stale:
+            return stale
+        raise HTTPException(status_code=404, detail=f"No market data found for ticker '{symbol}'.")
 
     return _set_cached_payload(cache_key, {
         "ticker": symbol,
@@ -403,6 +526,9 @@ def get_batch_chart_payload(tickers: list[str], *, period: str, interval: str) -
                 time.sleep(0.35)
 
     if not batch_data:
+        stale = _get_stale_cached_payload(cache_key)
+        if stale:
+            return stale
         raise HTTPException(status_code=404, detail="No market data was returned for the requested tickers.")
 
     unavailable = list(dict.fromkeys(unavailable))

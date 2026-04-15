@@ -1869,6 +1869,24 @@ select {
   line-height: 0;
 }
 
+.equation-fraction {
+  display: inline-grid;
+  align-items: center;
+  justify-items: center;
+  line-height: 1.05;
+  margin: 0 4px;
+  transform: translateY(3px);
+}
+
+.equation-fraction > span:first-child {
+  border-bottom: 1px solid currentColor;
+  padding: 0 5px 3px;
+}
+
+.equation-fraction > span:last-child {
+  padding-top: 3px;
+}
+
 .portfolio-toggle.active,
 .portfolio-chip-button:hover {
   border-color: rgba(217, 255, 63, 0.26);
@@ -1933,6 +1951,46 @@ select {
 .portfolio-context-card strong,
 .portfolio-summary-card strong {
   font-size: 1.35rem;
+}
+
+.portfolio-readout-section {
+  margin-top: 16px;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.018);
+  padding: 16px;
+}
+
+.portfolio-readout-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.portfolio-readout-header p {
+  max-width: 520px;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+  text-align: right;
+}
+
+.portfolio-readout-layout {
+  display: grid;
+  grid-template-columns: minmax(360px, 0.82fr) minmax(380px, 1.18fr);
+  gap: 14px;
+  align-items: stretch;
+  margin-top: 14px;
+}
+
+.portfolio-user-summary-grid {
+  margin-top: 0;
+}
+
+.portfolio-user-summary-grid .portfolio-summary-card {
+  min-height: 96px;
+  padding: 13px;
 }
 
 .portfolio-chart-shell {
@@ -2577,6 +2635,20 @@ select {
 
   .portfolio-context-grid,
   .portfolio-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .portfolio-readout-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .portfolio-readout-header p {
+    max-width: none;
+    text-align: left;
+  }
+
+  .portfolio-readout-layout {
     grid-template-columns: 1fr;
   }
 

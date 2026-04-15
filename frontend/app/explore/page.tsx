@@ -869,6 +869,59 @@ function riskToneColor(level: RiskLevel) {
   return "#64748b";
 }
 
+function averageMetric(values: Array<number | null | undefined>) {
+  const numericValues = values.filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+  if (!numericValues.length) return null;
+  return numericValues.reduce((sum, value) => sum + value, 0) / numericValues.length;
+}
+
+function buildAggregatedRiskSnapshot(
+  region: BaseRegion,
+  regionName: string,
+  snapshots: MarketRiskSnapshot[],
+): MarketRiskSnapshot | null {
+  if (!snapshots.length) return null;
+
+  const score = averageMetric(snapshots.map((snapshot) => snapshot.market_risk_score));
+  if (score === null) return null;
+
+  const availableCodes = snapshots.map((snapshot) => snapshot.iso_code).join(", ");
+  const asOfDate = snapshots
+    .map((snapshot) => snapshot.as_of_date)
+    .filter(Boolean)
+    .sort()
+    .at(-1) ?? "";
+
+  return {
+    country: regionName,
+    iso_code: region,
+    market_risk_score: score,
+    risk_level: riskLevelFromScore(score) ?? "moderate",
+    component_scores: {
+      volatility: averageMetric(snapshots.map((snapshot) => snapshot.component_scores.volatility)) ?? 0,
+      beta: averageMetric(snapshots.map((snapshot) => snapshot.component_scores.beta)) ?? 0,
+      fx_risk: averageMetric(snapshots.map((snapshot) => snapshot.component_scores.fx_risk)) ?? 0,
+    },
+    raw_metrics: {
+      realized_vol_30d: averageMetric(snapshots.map((snapshot) => snapshot.raw_metrics.realized_vol_30d)),
+      beta_60d: averageMetric(snapshots.map((snapshot) => snapshot.raw_metrics.beta_60d)),
+      fx_vol_30d: averageMetric(snapshots.map((snapshot) => snapshot.raw_metrics.fx_vol_30d)),
+      market_return_60d: averageMetric(snapshots.map((snapshot) => snapshot.raw_metrics.market_return_60d)),
+      benchmark_return_60d: averageMetric(snapshots.map((snapshot) => snapshot.raw_metrics.benchmark_return_60d)),
+      vix_close: averageMetric(snapshots.map((snapshot) => snapshot.raw_metrics.vix_close)),
+    },
+    data_source_used: [`Aggregated from available country risk scores: ${availableCodes}`],
+    as_of_date: asOfDate,
+    last_updated_timestamp:
+      snapshots
+        .map((snapshot) => snapshot.last_updated_timestamp)
+        .filter(Boolean)
+        .sort()
+        .at(-1) ?? new Date().toISOString(),
+    short_explanation: `${regionName} market risk is aggregated from available country scores (${availableCodes}). Current regional score is ${score.toFixed(1)}/100.`,
+  };
+}
+
 export default function ExplorePage() {
   const [regions, setRegions] = useState<RegionSummary[]>([]);
   const [selectedRegion, setSelectedRegion] = useState<RegionCode>("EU");
@@ -1138,6 +1191,28 @@ export default function ExplorePage() {
       [...BASE_REGIONS, ...ALL_DETAIL_REGIONS].map((region) => [region, buildAggregate(region)]),
     );
   }, [riskLookup]);
+
+  const displayedMarketRisk = useMemo(() => {
+    if (!activeRegion) return null;
+
+    if (ALL_DETAIL_REGIONS.includes(activeRegion.region)) {
+      return (
+        riskLookup.get(activeRegion.region) ??
+        (marketRisk?.iso_code === activeRegion.region ? marketRisk : null)
+      );
+    }
+
+    const members = DETAIL_REGIONS[activeRegion.region as BaseRegion] ?? [];
+    const snapshots = members
+      .map((member) => riskLookup.get(member))
+      .filter((item): item is MarketRiskSnapshot => Boolean(item));
+
+    return buildAggregatedRiskSnapshot(
+      activeRegion.region as BaseRegion,
+      activeRegion.region_name,
+      snapshots,
+    );
+  }, [activeRegion, marketRisk, riskLookup]);
 
   const mapRegionSegments = useMemo(() => {
     function topSegmentsForCountries(countries: Exclude<RegionCode, BaseRegion>[]) {
@@ -1658,8 +1733,8 @@ export default function ExplorePage() {
                             <strong>
                               {marketRiskLoading
                                 ? "..."
-                                : marketRisk
-                                  ? marketRisk.market_risk_score.toFixed(1)
+                                : displayedMarketRisk
+                                  ? displayedMarketRisk.market_risk_score.toFixed(1)
                                   : "--"}
                             </strong>
                           </div>
@@ -1676,39 +1751,39 @@ export default function ExplorePage() {
                         <div className="risk-summary-card">
                           <div className="risk-summary-header">
                             <strong>Market Risk</strong>
-                            <span className={`risk-level-pill risk-${marketRisk?.risk_level ?? "none"}`}>
-                              {marketRiskLoading ? "Loading" : riskToneLabel(marketRisk?.risk_level ?? null)}
+                            <span className={`risk-level-pill risk-${displayedMarketRisk?.risk_level ?? "none"}`}>
+                              {marketRiskLoading ? "Loading" : riskToneLabel(displayedMarketRisk?.risk_level ?? null)}
                             </span>
                           </div>
                           <p className="risk-summary-copy">
-                            {marketRisk
-                              ? marketRisk.short_explanation
+                            {displayedMarketRisk
+                              ? displayedMarketRisk.short_explanation
                               : marketRiskError
                                 ? marketRiskError
                               : MARKET_RISK_COUNTRIES.has(activeRegion.region)
                                 ? "Run the market risk refresh pipeline to show this country risk score."
-                                : "Market risk is currently available for US, CA, KR, JP, CN, TW, HK, SG, IN, DE, UK, and FR."}
+                                : "Market risk is aggregated from the country scores currently stored in the backend."}
                           </p>
-                          {marketRisk ? (
+                          {displayedMarketRisk ? (
                             <div className="risk-breakdown-grid">
                               <div className="risk-breakdown-item">
                                 <span>Volatility</span>
-                                <strong>{marketRisk.component_scores.volatility.toFixed(1)}</strong>
-                                <small>{formatPercent(marketRisk.raw_metrics.realized_vol_30d)}</small>
+                                <strong>{displayedMarketRisk.component_scores.volatility.toFixed(1)}</strong>
+                                <small>{formatPercent(displayedMarketRisk.raw_metrics.realized_vol_30d)}</small>
                               </div>
                               <div className="risk-breakdown-item">
                                 <span>Beta</span>
-                                <strong>{marketRisk.component_scores.beta.toFixed(1)}</strong>
+                                <strong>{displayedMarketRisk.component_scores.beta.toFixed(1)}</strong>
                                 <small>
-                                  {marketRisk.raw_metrics.beta_60d !== null
-                                    ? marketRisk.raw_metrics.beta_60d.toFixed(2)
+                                  {displayedMarketRisk.raw_metrics.beta_60d !== null
+                                    ? displayedMarketRisk.raw_metrics.beta_60d.toFixed(2)
                                     : "--"}
                                 </small>
                               </div>
                               <div className="risk-breakdown-item">
                                 <span>FX Risk</span>
-                                <strong>{marketRisk.component_scores.fx_risk.toFixed(1)}</strong>
-                                <small>{formatPercent(marketRisk.raw_metrics.fx_vol_30d)}</small>
+                                <strong>{displayedMarketRisk.component_scores.fx_risk.toFixed(1)}</strong>
+                                <small>{formatPercent(displayedMarketRisk.raw_metrics.fx_vol_30d)}</small>
                               </div>
                             </div>
                           ) : null}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import {
   CartesianGrid,
   ComposedChart,
@@ -102,11 +102,44 @@ function PortfolioTooltip({
   );
 }
 
-function ToggleHelp({ children }: { children: string }) {
+function ToggleHelp({ children }: { children: ReactNode }) {
   return (
     <span className="info-tooltip portfolio-toggle-help" tabIndex={0} onClick={(event) => event.stopPropagation()}>
       ?
       <span className="info-tooltip-card">{children}</span>
+    </span>
+  );
+}
+
+function CmlHelp() {
+  return (
+    <span className="info-tooltip portfolio-toggle-help" tabIndex={0} onClick={(event) => event.stopPropagation()}>
+      ?
+      <span className="info-tooltip-card portfolio-formula-card">
+        <strong>Capital Market Line (CML)</strong>
+        <span>
+          It is straight because the app mixes the risk-free asset and one best Sharpe-ratio portfolio by changing only
+          their weights.
+        </span>
+        <span className="portfolio-equation">
+          <span>E(R</span>
+          <sub>p</sub>
+          <span>) = R</span>
+          <sub>f</sub>
+          <span> + </span>
+          <span className="equation-fraction">
+            <span>
+              E(R<sub>m</sub>) - R<sub>f</sub>
+            </span>
+            <span>
+              σ<sub>m</sub>
+            </span>
+          </span>
+          <span> × σ</span>
+          <sub>p</sub>
+        </span>
+        <span>Risk and expected return move proportionally as that mix changes.</span>
+      </span>
     </span>
   );
 }
@@ -463,10 +496,7 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
           onClick={() => setShowCml((current) => !current)}
         >
           <span>Show CML</span>
-          <ToggleHelp>
-            The Capital Market Line connects the risk-free rate to the best Sharpe-ratio portfolio. It is a simple guide
-            for whether a portfolio has an efficient risk-return tradeoff.
-          </ToggleHelp>
+          <CmlHelp />
         </button>
       </div>
 
@@ -585,37 +615,45 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
         </div>
       </section>
 
-      <div className="portfolio-summary-grid">
-        <div className="portfolio-summary-card">
-          <span>Expected return</span>
-          <strong>{formatPercent(analysis.userPortfolio.return)}</strong>
+      <section className="portfolio-readout-section">
+        <div className="portfolio-readout-header">
+          <span className="eyebrow">Selected portfolio readout</span>
+          <p>These metrics summarize the portfolio weights you entered above.</p>
         </div>
-        <div className="portfolio-summary-card">
-          <span>Volatility</span>
-          <strong>{formatPercent(analysis.userPortfolio.risk)}</strong>
-        </div>
-        <div className="portfolio-summary-card">
-          <span>Sharpe ratio</span>
-          <strong>{formatSharpe(analysis.userPortfolio.sharpe)}</strong>
-        </div>
-        <div className="portfolio-summary-card">
-          <span className="portfolio-summary-label">
-            Risk-free rate
-            <RiskFreeRateHelp />
-          </span>
-          <strong>{formatPercent(chartSummary.riskFreeRate)}</strong>
-          <small>
-            {riskFreeRateInfo?.source ?? "FRED - 3-Month Treasury Constant Maturity (DGS3MO)"}
-            {riskFreeRateInfo?.as_of ? ` · As of ${riskFreeRateInfo.as_of}` : " · Using fallback value"}
-          </small>
-        </div>
-      </div>
+        <div className="portfolio-readout-layout">
+          <div className="portfolio-summary-grid portfolio-user-summary-grid">
+            <div className="portfolio-summary-card">
+              <span>Expected return</span>
+              <strong>{formatPercent(analysis.userPortfolio.return)}</strong>
+            </div>
+            <div className="portfolio-summary-card">
+              <span>Volatility</span>
+              <strong>{formatPercent(analysis.userPortfolio.risk)}</strong>
+            </div>
+            <div className="portfolio-summary-card">
+              <span>Sharpe ratio</span>
+              <strong>{formatSharpe(analysis.userPortfolio.sharpe)}</strong>
+            </div>
+            <div className="portfolio-summary-card">
+              <span className="portfolio-summary-label">
+                Risk-free rate
+                <RiskFreeRateHelp />
+              </span>
+              <strong>{formatPercent(chartSummary.riskFreeRate)}</strong>
+              <small>
+                {riskFreeRateInfo?.source ?? "FRED - 3-Month Treasury Constant Maturity (DGS3MO)"}
+                {riskFreeRateInfo?.as_of ? ` · As of ${riskFreeRateInfo.as_of}` : " · Using fallback value"}
+              </small>
+            </div>
+          </div>
 
-      <div className="portfolio-interpretation-card">
-        <span className="eyebrow">Interpretation</span>
-        <h3>Beginner-friendly readout</h3>
-        <p>{chartSummary.interpretation}</p>
-      </div>
+          <div className="portfolio-interpretation-card">
+            <span className="eyebrow">Interpretation</span>
+            <h3>Beginner-friendly readout</h3>
+            <p>{chartSummary.interpretation}</p>
+          </div>
+        </div>
+      </section>
 
       {analysis.tangencyPortfolio ? (
         <div className="portfolio-tangency-card">
