@@ -148,7 +148,11 @@ def build_region_summary(
 
 
 def db_url() -> str:
-    return os.getenv("SUPABASE_DB_URL", "")
+    return (
+        os.getenv("SUPABASE_DB_URL", "")
+        or os.getenv("DATABASE_URL", "")
+        or os.getenv("POSTGRES_URL", "")
+    )
 
 
 def risk_free_fallback_payload(reason: str) -> dict[str, Any]:
@@ -264,7 +268,7 @@ def get_connection() -> psycopg.Connection[Any]:
     if not db_configured():
         raise HTTPException(
             status_code=503,
-            detail="SUPABASE_DB_URL is not configured. Add it in backend/.env first.",
+            detail="Database URL is not configured. Add SUPABASE_DB_URL or DATABASE_URL.",
         )
     return psycopg.connect(db_url(), row_factory=dict_row)
 
@@ -1199,7 +1203,7 @@ def setup_db() -> dict[str, str]:
     if not db_configured():
         raise HTTPException(
             status_code=503,
-            detail="SUPABASE_DB_URL is required before running database setup.",
+            detail="Database URL is required before running database setup.",
         )
     return run_schema_setup()
 
@@ -1209,7 +1213,7 @@ async def ingest_news() -> dict[str, Any]:
     if not db_configured():
         raise HTTPException(
             status_code=503,
-            detail="SUPABASE_DB_URL is required before ingestion can save data.",
+            detail="Database URL is required before ingestion can save data.",
         )
 
     articles = await fetch_gdelt_articles()
@@ -1241,8 +1245,8 @@ def articles(
     if not db_configured():
         raise HTTPException(
             status_code=503,
-            detail="SUPABASE_DB_URL is required before reading stored articles.",
-    )
+            detail="Database URL is required before reading stored articles.",
+        )
     return load_articles_from_db(region=region, limit=limit)
 
 
@@ -1295,7 +1299,7 @@ async def refresh_market_risk() -> dict[str, Any]:
     if not db_configured():
         raise HTTPException(
             status_code=503,
-            detail="SUPABASE_DB_URL is required before market risk data can be stored.",
+            detail="Database URL is required before market risk data can be stored.",
         )
     if not market_risk_ready():
         raise HTTPException(
@@ -1317,7 +1321,7 @@ def get_market_risk() -> list[dict[str, Any]]:
     if not db_configured():
         raise HTTPException(
             status_code=503,
-            detail="SUPABASE_DB_URL is required before reading market risk scores.",
+            detail="Database URL is required before reading market risk scores.",
         )
 
     with get_connection() as conn:
@@ -1332,7 +1336,7 @@ def get_market_risk_country(country_code: str) -> dict[str, Any]:
     if not db_configured():
         raise HTTPException(
             status_code=503,
-            detail="SUPABASE_DB_URL is required before reading market risk scores.",
+            detail="Database URL is required before reading market risk scores.",
         )
 
     with get_connection() as conn:
