@@ -132,16 +132,37 @@ function AxisHelp({ type }: { type: "risk" | "return" }) {
         {isRisk ? (
           <>
             <strong>Risk</strong>
-            <code>sigma_p = sqrt(w^T Sigma w)</code>
-            <span>Sigma: covariance matrix between assets.</span>
+            <span className="portfolio-equation">
+              <span>σ</span>
+              <sub>p</sub>
+              <span> = √(w</span>
+              <sup>T</sup>
+              <span>Σw)</span>
+            </span>
+            <span>Σ: covariance matrix between assets.</span>
             <span>It reflects not only volatility, but also how assets move together.</span>
           </>
         ) : (
           <>
             <strong>Expected return</strong>
-            <code>E(Rp) = w1 mu1 + w2 mu2 + ... + wn mun</code>
-            <span>wi: asset weight</span>
-            <span>mui: average return of each asset</span>
+            <span className="portfolio-equation">
+              <span>E(R</span>
+              <sub>p</sub>
+              <span>) = w</span>
+              <sub>1</sub>
+              <span>μ</span>
+              <sub>1</sub>
+              <span> + w</span>
+              <sub>2</sub>
+              <span>μ</span>
+              <sub>2</sub>
+              <span> + ... + w</span>
+              <sub>n</sub>
+              <span>μ</span>
+              <sub>n</sub>
+            </span>
+            <span>wᵢ: asset weight</span>
+            <span>μᵢ: average return of each asset</span>
           </>
         )}
       </span>
@@ -408,12 +429,7 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
         </div>
 
         <div className="portfolio-chart-shell">
-          <div className="portfolio-axis-guide">
-            <div>
-              <span>X-axis</span>
-              <strong>Risk</strong>
-              <AxisHelp type="risk" />
-            </div>
+          <div className="portfolio-axis-guide portfolio-axis-guide-top">
             <div>
               <span>Y-axis</span>
               <strong>Expected return</strong>
@@ -496,6 +512,13 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
               />
             </ComposedChart>
           </ResponsiveContainer>
+          <div className="portfolio-axis-guide portfolio-axis-guide-bottom">
+            <div>
+              <span>X-axis</span>
+              <strong>Risk</strong>
+              <AxisHelp type="risk" />
+            </div>
+          </div>
         </div>
       </section>
 

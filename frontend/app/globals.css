@@ -1848,6 +1848,27 @@ select {
   font-size: 0.82rem;
 }
 
+.portfolio-equation {
+  display: inline-flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 1px;
+  border: 1px solid rgba(182, 212, 255, 0.16);
+  border-radius: 12px;
+  background: rgba(182, 212, 255, 0.07);
+  padding: 9px 10px;
+  color: #efffb8;
+  font-family: "Times New Roman", serif;
+  font-size: 1.08rem;
+  line-height: 1.2;
+}
+
+.portfolio-equation sub,
+.portfolio-equation sup {
+  font-size: 0.68em;
+  line-height: 0;
+}
+
 .portfolio-toggle.active,
 .portfolio-chip-button:hover {
   border-color: rgba(217, 255, 63, 0.26);
@@ -1930,6 +1951,15 @@ select {
   flex-wrap: wrap;
   gap: 10px;
   margin: 0 4px 12px;
+}
+
+.portfolio-axis-guide-top {
+  justify-content: flex-start;
+}
+
+.portfolio-axis-guide-bottom {
+  justify-content: flex-end;
+  margin: 8px 4px 0;
 }
 
 .portfolio-axis-guide > div {
