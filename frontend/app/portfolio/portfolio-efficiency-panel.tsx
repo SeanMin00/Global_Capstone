@@ -99,10 +99,9 @@ function PortfolioTooltip({
 
 export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) {
   const [portfolioAssets, setPortfolioAssets] = useState<PortfolioAssetInput[]>([
-    { ticker: "AAPL", weight: 25 },
-    { ticker: "MSFT", weight: 25 },
-    { ticker: "NVDA", weight: 25 },
-    { ticker: "TSM", weight: 25 },
+    { ticker: "AAPL", weight: 34 },
+    { ticker: "MSFT", weight: 33 },
+    { ticker: "SPY", weight: 33 },
   ]);
   const [newTicker, setNewTicker] = useState("");
   const [priceHistoryCache, setPriceHistoryCache] = useState<Record<string, HistoricalClosePoint[]>>({});

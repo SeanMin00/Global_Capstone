@@ -246,12 +246,12 @@ def get_batch_chart_payload(tickers: list[str], *, period: str, interval: str) -
         ) from exc
 
     if history.empty:
-        raise HTTPException(status_code=404, detail="No market data was returned for the requested tickers.")
+        history = None
 
     batch_data: dict[str, list[dict[str, Any]]] = {}
     unavailable: list[str] = []
 
-    if len(normalized_tickers) == 1:
+    if history is not None and len(normalized_tickers) == 1:
         symbol = normalized_tickers[0]
         history_frame = history.reset_index()
         timestamp_column = "Datetime" if "Datetime" in history_frame.columns else "Date"
@@ -267,7 +267,7 @@ def get_batch_chart_payload(tickers: list[str], *, period: str, interval: str) -
             batch_data[symbol] = points
         else:
             unavailable.append(symbol)
-    else:
+    elif history is not None:
         for symbol in normalized_tickers:
             try:
                 symbol_history = history[symbol].reset_index()
@@ -289,6 +289,31 @@ def get_batch_chart_payload(tickers: list[str], *, period: str, interval: str) -
                 batch_data[symbol] = points
             else:
                 unavailable.append(symbol)
+
+    if not batch_data:
+        for index, symbol in enumerate(normalized_tickers):
+            try:
+                single_payload = get_chart_payload(symbol, period=validated_period, interval=validated_interval)
+                points = [
+                    {
+                        "date": point["date"],
+                        "close": point["close"],
+                    }
+                    for point in single_payload["data"]
+                    if point.get("close") is not None
+                ]
+                if points:
+                    batch_data[symbol] = points
+                else:
+                    unavailable.append(symbol)
+            except HTTPException:
+                unavailable.append(symbol)
+
+            if index < len(normalized_tickers) - 1:
+                time.sleep(0.35)
+
+    if not batch_data:
+        raise HTTPException(status_code=404, detail="No market data was returned for the requested tickers.")
 
     payload = {
         "tickers": normalized_tickers,
