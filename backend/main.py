@@ -22,7 +22,7 @@ from market_risk import (
     market_risk_ready,
     refresh_market_risk_pipeline,
 )
-from stock_data import get_chart_payload, get_quote_payload
+from stock_data import get_batch_chart_payload, get_chart_payload, get_quote_payload
 
 load_dotenv(Path(__file__).with_name(".env"))
 
@@ -1155,6 +1155,21 @@ def chart(
         raise
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Failed to fetch chart data: {exc}") from exc
+
+
+@app.get("/api/chart/batch")
+def chart_batch(
+    tickers: str = Query(..., description="Comma-separated ticker symbols such as AAPL,MSFT,NVDA"),
+    period: str = Query("1y", description="Chart period such as 1d, 5d, 1mo, 6mo, 1y, max"),
+    interval: str = Query("1d", description="Chart interval such as 5m, 30m, 1d, 1wk"),
+) -> dict[str, Any]:
+    try:
+        parsed_tickers = [ticker.strip() for ticker in tickers.split(",") if ticker.strip()]
+        return get_batch_chart_payload(parsed_tickers, period=period, interval=interval)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Failed to fetch batch chart data: {exc}") from exc
 
 
 @app.post("/api/market-risk/refresh")

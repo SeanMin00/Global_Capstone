@@ -30,6 +30,14 @@ export type HistoricalClosePoint = {
   close: number;
 };
 
+export type BatchChartResponse = {
+  tickers: string[];
+  period: string;
+  interval: string;
+  data: Record<string, HistoricalClosePoint[]>;
+  unavailable: string[];
+};
+
 function normalizeApiBaseUrl(value: string) {
   return value.replace(/\/+$/, "");
 }
@@ -86,4 +94,27 @@ export async function fetchHistoricalCloseSeries(ticker: string): Promise<Histor
       date: point.date,
       close: Number(point.close),
     }));
+}
+
+export async function fetchBatchHistoricalCloseSeries(tickers: string[]): Promise<BatchChartResponse> {
+  const uniqueTickers = [...new Set(tickers.map((ticker) => ticker.trim().toUpperCase()).filter(Boolean))];
+  if (!uniqueTickers.length) {
+    return {
+      tickers: [],
+      period: "1y",
+      interval: "1d",
+      data: {},
+      unavailable: [],
+    };
+  }
+
+  const response = await fetch(
+    buildApiUrl(`/api/chart/batch?tickers=${encodeURIComponent(uniqueTickers.join(","))}&period=1y&interval=1d`),
+  );
+
+  if (!response.ok) {
+    throw new Error(await parseError(response, `Batch chart request failed with ${response.status}`));
+  }
+
+  return (await response.json()) as BatchChartResponse;
 }

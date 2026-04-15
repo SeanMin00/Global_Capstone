@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from typing import Any
 
 import yfinance as yf
@@ -8,6 +9,8 @@ from yfinance.exceptions import YFRateLimitError
 
 VALID_PERIODS = {"1d", "5d", "1mo", "6mo", "1y", "max"}
 VALID_INTERVALS = {"5m", "30m", "1d", "1wk"}
+CHART_CACHE_TTL_SECONDS = 60 * 15
+_chart_cache: dict[str, tuple[float, dict[str, Any]]] = {}
 
 
 def normalize_ticker(ticker: str) -> str:
@@ -103,6 +106,27 @@ def _history_or_404(stock: yf.Ticker, *, period: str, interval: str):
     return history
 
 
+def _cache_key(*parts: str) -> str:
+    return "::".join(parts)
+
+
+def _get_cached_payload(key: str) -> dict[str, Any] | None:
+    cached = _chart_cache.get(key)
+    if not cached:
+        return None
+
+    expires_at, payload = cached
+    if expires_at <= time.time():
+        _chart_cache.pop(key, None)
+        return None
+    return payload
+
+
+def _set_cached_payload(key: str, payload: dict[str, Any]) -> dict[str, Any]:
+    _chart_cache[key] = (time.time() + CHART_CACHE_TTL_SECONDS, payload)
+    return payload
+
+
 def get_quote_payload(ticker: str) -> dict[str, Any]:
     symbol = normalize_ticker(ticker)
     stock = yf.Ticker(symbol)
@@ -161,6 +185,11 @@ def get_quote_payload(ticker: str) -> dict[str, Any]:
 def get_chart_payload(ticker: str, *, period: str, interval: str) -> dict[str, Any]:
     symbol = normalize_ticker(ticker)
     validated_period, validated_interval = validate_chart_request(period, interval)
+    cache_key = _cache_key("single", symbol, validated_period, validated_interval)
+    cached = _get_cached_payload(cache_key)
+    if cached:
+        return cached
+
     stock = yf.Ticker(symbol)
     history = _history_or_404(stock, period=validated_period, interval=validated_interval).reset_index()
 
@@ -180,9 +209,92 @@ def get_chart_payload(ticker: str, *, period: str, interval: str) -> dict[str, A
             }
         )
 
-    return {
+    return _set_cached_payload(cache_key, {
         "ticker": symbol,
         "period": validated_period,
         "interval": validated_interval,
         "data": data_points,
+    })
+
+
+def get_batch_chart_payload(tickers: list[str], *, period: str, interval: str) -> dict[str, Any]:
+    normalized_tickers = list(dict.fromkeys(normalize_ticker(ticker) for ticker in tickers if ticker.strip()))
+    if not normalized_tickers:
+        raise HTTPException(status_code=400, detail="At least one ticker is required.")
+
+    validated_period, validated_interval = validate_chart_request(period, interval)
+    cache_key = _cache_key("batch", ",".join(sorted(normalized_tickers)), validated_period, validated_interval)
+    cached = _get_cached_payload(cache_key)
+    if cached:
+        return cached
+
+    try:
+        history = yf.download(
+            tickers=normalized_tickers,
+            period=validated_period,
+            interval=validated_interval,
+            auto_adjust=False,
+            actions=False,
+            group_by="ticker",
+            threads=False,
+            progress=False,
+        )
+    except YFRateLimitError as exc:
+        raise HTTPException(
+            status_code=429,
+            detail="Yahoo Finance rate limit reached. Try again in a little while.",
+        ) from exc
+
+    if history.empty:
+        raise HTTPException(status_code=404, detail="No market data was returned for the requested tickers.")
+
+    batch_data: dict[str, list[dict[str, Any]]] = {}
+    unavailable: list[str] = []
+
+    if len(normalized_tickers) == 1:
+        symbol = normalized_tickers[0]
+        history_frame = history.reset_index()
+        timestamp_column = "Datetime" if "Datetime" in history_frame.columns else "Date"
+        points = [
+            {
+                "date": _serialize_timestamp(row.get(timestamp_column)),
+                "close": _safe_float(row.get("Close")),
+            }
+            for row in history_frame.to_dict(orient="records")
+            if _safe_float(row.get("Close")) is not None
+        ]
+        if points:
+            batch_data[symbol] = points
+        else:
+            unavailable.append(symbol)
+    else:
+        for symbol in normalized_tickers:
+            try:
+                symbol_history = history[symbol].reset_index()
+            except Exception:
+                unavailable.append(symbol)
+                continue
+
+            timestamp_column = "Datetime" if "Datetime" in symbol_history.columns else "Date"
+            points = [
+                {
+                    "date": _serialize_timestamp(row.get(timestamp_column)),
+                    "close": _safe_float(row.get("Close")),
+                }
+                for row in symbol_history.to_dict(orient="records")
+                if _safe_float(row.get("Close")) is not None
+            ]
+
+            if points:
+                batch_data[symbol] = points
+            else:
+                unavailable.append(symbol)
+
+    payload = {
+        "tickers": normalized_tickers,
+        "period": validated_period,
+        "interval": validated_interval,
+        "data": batch_data,
+        "unavailable": unavailable,
     }
+    return _set_cached_payload(cache_key, payload)

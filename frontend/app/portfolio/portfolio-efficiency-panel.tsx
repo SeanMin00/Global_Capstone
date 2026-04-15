@@ -14,7 +14,7 @@ import {
 } from "recharts";
 import { analyzePortfolioCml, sanitizePortfolioAssets, type PortfolioAssetInput } from "./cml";
 import { DEFAULT_RISK_FREE_RATE } from "./cml-config";
-import { fetchHistoricalCloseSeries, type HistoricalClosePoint } from "../stocks/stock-api";
+import { fetchBatchHistoricalCloseSeries, type HistoricalClosePoint } from "../stocks/stock-api";
 
 type ProfilePreferences = {
   investmentGoal: string;
@@ -127,17 +127,8 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
       try {
         setLoading(true);
         setError("");
-
-        const entries = await Promise.all(
-          missingTickers.map(async (ticker) => {
-            try {
-              const history = await fetchHistoricalCloseSeries(ticker);
-              return [ticker, history] as const;
-            } catch (fetchError) {
-              return [ticker, []] as const;
-            }
-          }),
-        );
+        const batch = await fetchBatchHistoricalCloseSeries(missingTickers);
+        const entries = missingTickers.map((ticker) => [ticker, batch.data[ticker] ?? []] as const);
 
         if (cancelled) return;
 
@@ -149,6 +140,14 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
         const failedTickers = entries.filter(([, history]) => history.length === 0).map(([ticker]) => ticker);
         if (failedTickers.length) {
           setError(`Some tickers could not load price history: ${failedTickers.join(", ")}`);
+        }
+      } catch (fetchError) {
+        if (!cancelled) {
+          const message =
+            fetchError instanceof Error
+              ? fetchError.message
+              : "Portfolio price history could not be loaded right now.";
+          setError(message);
         }
       } finally {
         if (!cancelled) {
