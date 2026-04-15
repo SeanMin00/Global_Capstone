@@ -482,21 +482,6 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
         </div>
       ) : null}
 
-      <section className="portfolio-risk-free-card">
-        <div>
-          <span className="eyebrow">Risk-free rate</span>
-          <h3>
-            {formatPercent(activeRiskFreeRate)}
-            <RiskFreeRateHelp />
-          </h3>
-        </div>
-        <div className="portfolio-risk-free-meta">
-          <span>Source: {riskFreeRateInfo?.source ?? "FRED - 3-Month Treasury Constant Maturity (DGS3MO)"}</span>
-          <span>As of: {riskFreeRateInfo?.as_of ?? "N/A"}</span>
-          <span>{riskFreeRateLoading ? "Loading official rate..." : riskFreeRateInfo?.note ?? "Using fallback value."}</span>
-        </div>
-      </section>
-
       <section className="portfolio-chart-card">
         <div className="portfolio-chart-header">
           <div>
@@ -614,8 +599,15 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
           <strong>{formatSharpe(analysis.userPortfolio.sharpe)}</strong>
         </div>
         <div className="portfolio-summary-card">
-          <span>Risk-free rate</span>
+          <span className="portfolio-summary-label">
+            Risk-free rate
+            <RiskFreeRateHelp />
+          </span>
           <strong>{formatPercent(chartSummary.riskFreeRate)}</strong>
+          <small>
+            {riskFreeRateInfo?.source ?? "FRED - 3-Month Treasury Constant Maturity (DGS3MO)"}
+            {riskFreeRateInfo?.as_of ? ` · As of ${riskFreeRateInfo.as_of}` : " · Using fallback value"}
+          </small>
         </div>
       </div>
 

@@ -1935,35 +1935,6 @@ select {
   font-size: 1.35rem;
 }
 
-.portfolio-risk-free-card {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  border: 1px solid rgba(217, 255, 63, 0.16);
-  border-radius: 22px;
-  background:
-    linear-gradient(135deg, rgba(217, 255, 63, 0.08), rgba(56, 189, 248, 0.04)),
-    rgba(255, 255, 255, 0.025);
-  padding: 16px 18px;
-}
-
-.portfolio-risk-free-card h3 {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  margin: 5px 0 0;
-  font-size: 1.65rem;
-}
-
-.portfolio-risk-free-meta {
-  display: grid;
-  gap: 5px;
-  color: var(--muted);
-  line-height: 1.45;
-}
-
 .portfolio-chart-shell {
   margin-top: 16px;
   min-height: 420px;
@@ -2026,6 +1997,19 @@ select {
 .portfolio-axis-help:hover .info-tooltip-card,
 .portfolio-axis-help:focus-visible .info-tooltip-card {
   transform: translate(-50%, 0);
+}
+
+.portfolio-summary-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.portfolio-summary-card small {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted);
+  line-height: 1.45;
 }
 
 .portfolio-interpretation-card h3 {

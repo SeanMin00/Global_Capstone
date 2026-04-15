@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import time
+from datetime import datetime, timezone
 from typing import Any
 
+import httpx
 import yfinance as yf
 from fastapi import HTTPException
 from yfinance.exceptions import YFRateLimitError
@@ -10,6 +12,11 @@ from yfinance.exceptions import YFRateLimitError
 VALID_PERIODS = {"1d", "5d", "1mo", "6mo", "1y", "max"}
 VALID_INTERVALS = {"5m", "30m", "1d", "1wk"}
 CHART_CACHE_TTL_SECONDS = 60 * 15
+YAHOO_CHART_URL = "https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
+YAHOO_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (compatible; GlobalCapstoneMVP/1.0)",
+    "Accept": "application/json",
+}
 _chart_cache: dict[str, tuple[float, dict[str, Any]]] = {}
 
 
@@ -73,6 +80,13 @@ def _serialize_timestamp(value: Any) -> str:
     return str(value)
 
 
+def _serialize_unix_timestamp(value: Any) -> str:
+    try:
+        return datetime.fromtimestamp(int(value), timezone.utc).replace(tzinfo=None).isoformat(timespec="minutes")
+    except (TypeError, ValueError, OSError, OverflowError):
+        return ""
+
+
 def _safe_info(stock: yf.Ticker) -> dict[str, Any]:
     try:
         info = stock.info
@@ -104,6 +118,65 @@ def _history_or_404(stock: yf.Ticker, *, period: str, interval: str):
             detail=f"No market data found for ticker '{stock.ticker}'.",
         )
     return history
+
+
+def _yahoo_chart_points(symbol: str, *, period: str, interval: str) -> list[dict[str, Any]]:
+    """Fallback to Yahoo's chart JSON endpoint when yfinance returns an empty frame.
+
+    Render/free hosting environments can occasionally receive empty yfinance
+    frames even for valid tickers. This keeps the MVP on Yahoo Finance data while
+    avoiding a total portfolio-chart failure.
+    """
+    try:
+        response = httpx.get(
+            YAHOO_CHART_URL.format(symbol=symbol),
+            params={
+                "range": period,
+                "interval": interval,
+                "includePrePost": "false",
+                "events": "div,splits",
+            },
+            headers=YAHOO_HEADERS,
+            timeout=12.0,
+        )
+        response.raise_for_status()
+        payload = response.json()
+    except Exception:
+        return []
+
+    result = ((payload.get("chart") or {}).get("result") or [None])[0]
+    if not isinstance(result, dict):
+        return []
+
+    timestamps = result.get("timestamp") or []
+    quote = (((result.get("indicators") or {}).get("quote") or [None])[0]) or {}
+    if not timestamps or not isinstance(quote, dict):
+        return []
+
+    opens = quote.get("open") or []
+    highs = quote.get("high") or []
+    lows = quote.get("low") or []
+    closes = quote.get("close") or []
+    volumes = quote.get("volume") or []
+
+    points: list[dict[str, Any]] = []
+    for index, timestamp in enumerate(timestamps):
+        close = _safe_float(closes[index] if index < len(closes) else None)
+        if close is None:
+            continue
+
+        points.append(
+            {
+                "date": _serialize_unix_timestamp(timestamp),
+                "open": _safe_float(opens[index] if index < len(opens) else None),
+                "high": _safe_float(highs[index] if index < len(highs) else None),
+                "low": _safe_float(lows[index] if index < len(lows) else None),
+                "close": close,
+                "volume": _safe_int(volumes[index] if index < len(volumes) else None),
+            }
+        )
+
+    return points
 
 
 def _cache_key(*parts: str) -> str:
@@ -190,23 +263,39 @@ def get_chart_payload(ticker: str, *, period: str, interval: str) -> dict[str, A
     if cached:
         return cached
 
-    stock = yf.Ticker(symbol)
-    history = _history_or_404(stock, period=validated_period, interval=validated_interval).reset_index()
-
-    timestamp_column = "Datetime" if "Datetime" in history.columns else "Date"
     data_points: list[dict[str, Any]] = []
 
-    for row in history.to_dict(orient="records"):
-        timestamp = row.get(timestamp_column)
-        data_points.append(
-            {
-                "date": _serialize_timestamp(timestamp),
-                "open": _safe_float(row.get("Open")),
-                "high": _safe_float(row.get("High")),
-                "low": _safe_float(row.get("Low")),
-                "close": _safe_float(row.get("Close")),
-                "volume": _safe_int(row.get("Volume")),
-            }
+    stock = yf.Ticker(symbol)
+    try:
+        history = _history_or_404(stock, period=validated_period, interval=validated_interval).reset_index()
+        timestamp_column = "Datetime" if "Datetime" in history.columns else "Date"
+
+        for row in history.to_dict(orient="records"):
+            timestamp = row.get(timestamp_column)
+            close = _safe_float(row.get("Close"))
+            if close is None:
+                continue
+            data_points.append(
+                {
+                    "date": _serialize_timestamp(timestamp),
+                    "open": _safe_float(row.get("Open")),
+                    "high": _safe_float(row.get("High")),
+                    "low": _safe_float(row.get("Low")),
+                    "close": close,
+                    "volume": _safe_int(row.get("Volume")),
+                }
+            )
+    except HTTPException as exc:
+        if exc.status_code not in {404, 429}:
+            raise
+
+    if not data_points:
+        data_points = _yahoo_chart_points(symbol, period=validated_period, interval=validated_interval)
+
+    if not data_points:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No market data found for ticker '{symbol}'.",
         )
 
     return _set_cached_payload(cache_key, {
@@ -239,13 +328,12 @@ def get_batch_chart_payload(tickers: list[str], *, period: str, interval: str) -
             threads=False,
             progress=False,
         )
-    except YFRateLimitError as exc:
-        raise HTTPException(
-            status_code=429,
-            detail="Yahoo Finance rate limit reached. Try again in a little while.",
-        ) from exc
+    except YFRateLimitError:
+        history = None
+    except Exception:
+        history = None
 
-    if history.empty:
+    if history is not None and history.empty:
         history = None
 
     batch_data: dict[str, list[dict[str, Any]]] = {}
@@ -290,8 +378,9 @@ def get_batch_chart_payload(tickers: list[str], *, period: str, interval: str) -
             else:
                 unavailable.append(symbol)
 
-    if not batch_data:
-        for index, symbol in enumerate(normalized_tickers):
+    missing_after_batch = [symbol for symbol in normalized_tickers if symbol not in batch_data]
+    if missing_after_batch:
+        for index, symbol in enumerate(missing_after_batch):
             try:
                 single_payload = get_chart_payload(symbol, period=validated_period, interval=validated_interval)
                 points = [
@@ -304,17 +393,19 @@ def get_batch_chart_payload(tickers: list[str], *, period: str, interval: str) -
                 ]
                 if points:
                     batch_data[symbol] = points
+                    unavailable = [ticker for ticker in unavailable if ticker != symbol]
                 else:
                     unavailable.append(symbol)
             except HTTPException:
                 unavailable.append(symbol)
 
-            if index < len(normalized_tickers) - 1:
+            if index < len(missing_after_batch) - 1:
                 time.sleep(0.35)
 
     if not batch_data:
         raise HTTPException(status_code=404, detail="No market data was returned for the requested tickers.")
 
+    unavailable = list(dict.fromkeys(unavailable))
     payload = {
         "tickers": normalized_tickers,
         "period": validated_period,
