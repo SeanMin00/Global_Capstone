@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import SentimentWorldMap from "../sentiment-world-map";
 import StockDetailView from "../stocks/stock-detail-view";
+import { buildApiUrl } from "../stocks/stock-api";
 import PortfolioEfficiencyPanel from "../portfolio/portfolio-efficiency-panel";
 
 type RegionArticle = {
@@ -912,7 +913,7 @@ export default function ExplorePage() {
       try {
         setLoading(true);
         setError("");
-        const response = await fetch("http://localhost:8000/regions/sentiment");
+        const response = await fetch(buildApiUrl("/regions/sentiment"));
         if (!response.ok) {
           throw new Error(`Request failed with ${response.status}`);
         }
@@ -1000,7 +1001,7 @@ export default function ExplorePage() {
   useEffect(() => {
     async function loadAllMarketRisk() {
       try {
-        const response = await fetch("http://localhost:8000/api/market-risk");
+        const response = await fetch(buildApiUrl("/api/market-risk"));
         if (!response.ok) return;
         const payload = (await response.json()) as MarketRiskSnapshot[];
         setAllMarketRisk(payload);
@@ -1019,7 +1020,7 @@ export default function ExplorePage() {
       try {
         setMarketRiskLoading(true);
         setMarketRiskError("");
-        const response = await fetch(`http://localhost:8000/api/market-risk/${selectedRegion}`);
+        const response = await fetch(buildApiUrl(`/api/market-risk/${selectedRegion}`));
         if (!response.ok) {
           const payload = (await response.json().catch(() => null)) as { detail?: string } | null;
           setMarketRisk(null);

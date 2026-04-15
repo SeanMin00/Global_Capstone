@@ -30,7 +30,18 @@ export type HistoricalClosePoint = {
   close: number;
 };
 
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+function normalizeApiBaseUrl(value: string) {
+  return value.replace(/\/+$/, "");
+}
+
+export const API_BASE_URL = normalizeApiBaseUrl(
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000",
+);
+
+export function buildApiUrl(path: string) {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  return `${API_BASE_URL}${normalizedPath}`;
+}
 
 async function parseError(response: Response, fallback: string) {
   const payload = (await response.json().catch(() => null)) as { detail?: string } | null;
@@ -38,9 +49,7 @@ async function parseError(response: Response, fallback: string) {
 }
 
 export async function fetchQuote(ticker: string): Promise<QuoteResponse> {
-  const response = await fetch(
-    `${API_BASE_URL}/api/quote?ticker=${encodeURIComponent(ticker)}`,
-  );
+  const response = await fetch(buildApiUrl(`/api/quote?ticker=${encodeURIComponent(ticker)}`));
 
   if (!response.ok) {
     throw new Error(await parseError(response, `Quote request failed with ${response.status}`));
@@ -54,9 +63,11 @@ export async function fetchChart(
   params: { period: string; interval: string },
 ): Promise<ChartResponse> {
   const response = await fetch(
-    `${API_BASE_URL}/api/chart?ticker=${encodeURIComponent(ticker)}&period=${encodeURIComponent(
-      params.period,
-    )}&interval=${encodeURIComponent(params.interval)}`,
+    buildApiUrl(
+      `/api/chart?ticker=${encodeURIComponent(ticker)}&period=${encodeURIComponent(
+        params.period,
+      )}&interval=${encodeURIComponent(params.interval)}`,
+    ),
   );
 
   if (!response.ok) {

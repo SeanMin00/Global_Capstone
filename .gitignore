@@ -2,6 +2,8 @@
 .env
 .env.local
 .env.production
+backend/.env
+frontend/.env.local
 .venv
 __pycache__/
 *.pyc
@@ -15,6 +17,7 @@ apps/web/.next/
 apps/web/out/
 apps/web/coverage/
 frontend/.next/
+frontend/tsconfig.tsbuildinfo
 
 dist/
 build/

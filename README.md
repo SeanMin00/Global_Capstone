@@ -1,68 +1,43 @@
-# Global Market Intelligence MVP
+# Global Capstone
 
-MVP-first monorepo for an AI-powered global market intelligence platform aimed at beginner investors.
+MVP-first global market intelligence app for beginner investors.
 
-## Stack
+Current stack:
 
-- Frontend: Next.js + TypeScript + Tailwind
-- Backend: FastAPI
+- Frontend: Next.js + TypeScript + Recharts
+- Backend: FastAPI + Python
+- Data: Yahoo Finance (`yfinance`), GDELT, Alpha Vantage
 - Database: Supabase Postgres
 - Frontend deploy: Vercel
 - Backend deploy: Render
-- Map: Mapbox
-- Heatmap / treemap: ECharts
-- AI chat: OpenAI Responses API with tool calling
-- News ingestion: GNews for global coverage, app-level sentiment aggregation
 
-## Current Demo Path
-
-Right now the actively used local demo runs on:
-
-- Backend: [`backend/main.py`](/Users/gideokmin/Documents/Global%20Capstone/backend/main.py)
-- Frontend: [`frontend/app/explore/page.tsx`](/Users/gideokmin/Documents/Global%20Capstone/frontend/app/explore/page.tsx)
-
-This lightweight path is where the current map, bubble chart, and news flow are being iterated fastest.
-
-## Monorepo Structure
+## Current Project Structure
 
 ```text
 .
-├── apps
-│   ├── api
-│   │   ├── app
-│   │   │   ├── api
-│   │   │   ├── core
-│   │   │   ├── db
-│   │   │   ├── jobs
-│   │   │   ├── models
-│   │   │   └── services
-│   │   ├── .env.example
-│   │   └── requirements.txt
-│   └── web
-│       ├── src
-│       │   ├── app
-│       │   ├── components
-│       │   └── lib
-│       └── .env.example
-├── docs
-│   ├── api-design.md
-│   ├── build-plan.md
-│   ├── deployment.md
-│   └── ingestion-pipeline.md
+├── backend
+│   ├── .env.example
+│   ├── main.py
+│   ├── market_risk.py
+│   ├── requirements.txt
+│   └── stock_data.py
+├── frontend
+│   ├── .env.example
+│   ├── app
+│   │   ├── explore
+│   │   ├── portfolio
+│   │   ├── stocks
+│   │   ├── globals.css
+│   │   ├── layout.tsx
+│   │   └── sentiment-world-map.tsx
+│   └── package.json
 └── supabase
     └── schema.sql
 ```
 
-## Why This Structure
-
-- `apps/web` stays focused on UI, routing, and client integrations.
-- `apps/api` owns ingestion, aggregation, chat orchestration, and data access.
-- `supabase/schema.sql` gives you one practical source of truth for the MVP database.
-- `docs/` holds rollout, deployment, and architecture notes so the code stays clean.
-
 ## Local Setup
 
-### Current Supabase-backed demo setup
+### 1. Backend
 
 ```bash
 cd backend
@@ -73,104 +48,131 @@ pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 ```
 
-Then in another terminal:
+Useful backend checks:
 
 ```bash
-curl -X POST http://127.0.0.1:8000/setup-db
-curl -X POST http://127.0.0.1:8000/ingest
-curl -X POST http://127.0.0.1:8000/api/market-risk/refresh
+curl http://127.0.0.1:8000/health
+curl http://127.0.0.1:8000/regions/sentiment
+curl "http://127.0.0.1:8000/api/quote?ticker=AAPL"
+curl "http://127.0.0.1:8000/api/chart?ticker=AAPL&period=1mo&interval=1d"
 ```
 
-`/api/market-risk/refresh` requires `ALPHA_VANTAGE_API_KEY` in `backend/.env`.
-
-Frontend:
+### 2. Frontend
 
 ```bash
 cd frontend
+cp .env.example .env.local
 npm install
 npm run dev
 ```
 
-Open `http://localhost:3001/explore` or `http://localhost:3002/explore` depending on your current dev port.
+Open:
 
-### 1. Clone the repo
-
-```bash
-git clone https://github.com/SeanMin00/Global_Capstone.git
-cd Global_Capstone
-```
-
-### 2. Frontend setup
-
-```bash
-pnpm install
-cp apps/web/.env.example apps/web/.env.local
-pnpm dev:web
-```
-
-Frontend runs at `http://localhost:3000`.
-
-### 3. Backend setup
-
-```bash
-python3 -m venv apps/api/.venv
-source apps/api/.venv/bin/activate
-pip install -r apps/api/requirements.txt
-cp apps/api/.env.example apps/api/.env
-cd apps/api
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-Backend runs at `http://localhost:8000`.
-
-## Scaffold Commands From Scratch
-
-If you ever want to recreate the project manually instead of using this scaffold:
-
-```bash
-pnpm dlx create-next-app@latest apps/web --ts --tailwind --app --src-dir --import-alias "@/*"
-python3 -m venv apps/api/.venv
-source apps/api/.venv/bin/activate
-pip install fastapi "uvicorn[standard]" pydantic-settings psycopg[binary] httpx openai
-```
-
-## MVP API Endpoints
-
-- `GET /health`
-- `GET /regions/sentiment`
-- `GET /regions/{region}`
-- `GET /articles`
-- `GET /heatmap`
-- `POST /chat`
-
-More detail: [docs/api-design.md](/Users/gideokmin/Documents/Global%20Capstone/docs/api-design.md)
-
-## MVP Build Order
-
-1. Supabase schema and local API.
-2. Explore map with mock data.
-3. Heatmap view.
-4. News ingestion job and daily rollups.
-5. AI chat over region snapshots.
-6. Dashboard and onboarding.
-7. Deploy frontend and backend.
-
-Detailed plan: [docs/build-plan.md](/Users/gideokmin/Documents/Global%20Capstone/docs/build-plan.md)
+- Explore: `http://localhost:3001/explore`
+- Stock chart example: `http://localhost:3001/stocks/AAPL`
 
 ## Environment Variables
 
-Frontend example: [apps/web/.env.example](/Users/gideokmin/Documents/Global%20Capstone/apps/web/.env.example)
+### Frontend
 
-Backend example: [apps/api/.env.example](/Users/gideokmin/Documents/Global%20Capstone/apps/api/.env.example)
+`frontend/.env.local`
+
+```env
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+```
+
+### Backend
+
+`backend/.env`
+
+```env
+SUPABASE_DB_URL=postgresql://postgres:YOUR_PASSWORD@YOUR_HOST:6543/postgres
+FRONTEND_ORIGINS=http://localhost:3001,http://localhost:3002,https://your-frontend.vercel.app
+FRONTEND_ORIGIN_REGEX=https://.*\\.vercel\\.app
+GDELT_QUERY=(economy OR markets OR stocks OR inflation OR trade OR oil)
+GDELT_MAX_RECORDS=60
+INGEST_ARTICLE_LIMIT_PER_REGION=16
+ALPHA_VANTAGE_API_KEY=YOUR_ALPHA_VANTAGE_API_KEY
+FRED_API_KEY=YOUR_FRED_API_KEY
+```
+
+Notes:
+
+- `NEXT_PUBLIC_API_BASE_URL` is the main frontend-to-backend switch for local vs deployed environments.
+- `FRONTEND_ORIGINS` controls FastAPI CORS and accepts a comma-separated list.
+- `FRONTEND_ORIGIN_REGEX` is useful for Vercel preview URLs.
 
 ## Deployment
 
-Step-by-step notes for Vercel and Render: [docs/deployment.md](/Users/gideokmin/Documents/Global%20Capstone/docs/deployment.md)
+### Frontend on Vercel
 
-## Database
+1. Import the GitHub repo into Vercel.
+2. Set **Root Directory** to `frontend`.
+3. Add environment variable:
 
-Supabase SQL schema: [supabase/schema.sql](/Users/gideokmin/Documents/Global%20Capstone/supabase/schema.sql)
+```env
+NEXT_PUBLIC_API_BASE_URL=https://your-backend.onrender.com
+```
 
-## Ingestion Design
+4. Deploy.
 
-Scheduled ingestion and aggregation notes: [docs/ingestion-pipeline.md](/Users/gideokmin/Documents/Global%20Capstone/docs/ingestion-pipeline.md)
+### Backend on Render
+
+1. Create a new **Web Service** from the same GitHub repo.
+2. Set **Root Directory** to `backend`.
+3. Build command:
+
+```bash
+pip install -r requirements.txt
+```
+
+4. Start command:
+
+```bash
+uvicorn main:app --host 0.0.0.0 --port $PORT
+```
+
+You can also use the root [render.yaml](/Users/gideokmin/Documents/Global%20Capstone/render.yaml) blueprint file instead of filling these manually.
+
+5. Add environment variables:
+
+```env
+SUPABASE_DB_URL=...
+FRONTEND_ORIGINS=https://your-frontend.vercel.app
+FRONTEND_ORIGIN_REGEX=https://.*\\.vercel\\.app
+GDELT_QUERY=(economy OR markets OR stocks OR inflation OR trade OR oil)
+GDELT_MAX_RECORDS=60
+INGEST_ARTICLE_LIMIT_PER_REGION=16
+ALPHA_VANTAGE_API_KEY=...
+FRED_API_KEY=...
+```
+
+### Recommended Order
+
+1. Deploy backend on Render
+2. Copy the Render URL
+3. Set `NEXT_PUBLIC_API_BASE_URL` in Vercel
+4. Deploy frontend on Vercel
+5. Copy the Vercel URL back into Render as `FRONTEND_ORIGINS`
+6. Redeploy backend once
+
+## Current MVP Features
+
+- World map with regional and country drill-down
+- News-based market summaries
+- Market risk snapshots
+- Explorer views for country/segment/company structure
+- Stock chart view using Yahoo Finance
+- Portfolio CML / efficient frontier MVP
+- Profile onboarding
+
+## Developer Note
+
+This repo currently prioritizes working MVP behavior over infrastructure complexity.
+
+- Market data fetches are client-triggered
+- No caching layer yet
+- No auth yet
+- No background scheduler required for frontend charting
+
+That keeps the app easy to demo, debug, and deploy.

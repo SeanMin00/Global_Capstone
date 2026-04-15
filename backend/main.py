@@ -58,15 +58,25 @@ GDELT_QUERY = os.getenv(
 )
 GDELT_MAX_RECORDS = int(os.getenv("GDELT_MAX_RECORDS", "60"))
 
-frontend_origin = os.getenv("FRONTEND_ORIGIN", "http://localhost:3002")
-cors_origins = list(
-    dict.fromkeys([frontend_origin, "http://localhost:3001", "http://localhost:3002"]),
-)
+def parse_cors_origins() -> list[str]:
+    raw_origins = [
+        *os.getenv("FRONTEND_ORIGINS", "").split(","),
+        os.getenv("FRONTEND_ORIGIN", ""),
+        "http://localhost:3001",
+        "http://localhost:3002",
+    ]
+    cleaned = [origin.strip().rstrip("/") for origin in raw_origins if origin.strip()]
+    return list(dict.fromkeys(cleaned))
+
+
+cors_origins = parse_cors_origins()
+cors_origin_regex = os.getenv("FRONTEND_ORIGIN_REGEX", "").strip() or None
 
 app = FastAPI(title="Minimal Global News MVP")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
+    allow_origin_regex=cors_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
