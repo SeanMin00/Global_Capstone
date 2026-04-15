@@ -1828,6 +1828,26 @@ select {
   white-space: normal;
 }
 
+.portfolio-formula-card {
+  display: grid;
+  gap: 8px;
+}
+
+.portfolio-formula-card strong {
+  color: var(--text);
+}
+
+.portfolio-formula-card code {
+  display: block;
+  border: 1px solid rgba(182, 212, 255, 0.16);
+  border-radius: 10px;
+  background: rgba(182, 212, 255, 0.07);
+  padding: 7px 8px;
+  color: #efffb8;
+  font-family: inherit;
+  font-size: 0.82rem;
+}
+
 .portfolio-toggle.active,
 .portfolio-chip-button:hover {
   border-color: rgba(217, 255, 63, 0.26);
@@ -1903,6 +1923,50 @@ select {
     linear-gradient(180deg, rgba(7, 11, 22, 0.85), rgba(12, 17, 27, 0.92)),
     rgba(255, 255, 255, 0.02);
   padding: 16px 12px 6px;
+}
+
+.portfolio-axis-guide {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 4px 12px;
+}
+
+.portfolio-axis-guide > div {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.035);
+  padding: 8px 12px;
+}
+
+.portfolio-axis-guide span {
+  color: var(--muted);
+}
+
+.portfolio-axis-guide strong {
+  color: var(--text);
+}
+
+.portfolio-axis-help {
+  width: 16px;
+  height: 16px;
+  font-size: 0.66rem;
+}
+
+.portfolio-axis-help .info-tooltip-card {
+  top: calc(100% + 12px);
+  left: 50%;
+  width: min(320px, 76vw);
+  transform: translate(-50%, 4px);
+  text-align: left;
+}
+
+.portfolio-axis-help:hover .info-tooltip-card,
+.portfolio-axis-help:focus-visible .info-tooltip-card {
+  transform: translate(-50%, 0);
 }
 
 .portfolio-interpretation-card h3 {

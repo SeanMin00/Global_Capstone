@@ -106,6 +106,49 @@ function ToggleHelp({ children }: { children: string }) {
   );
 }
 
+function RandomPortfolioHelp() {
+  return (
+    <span className="info-tooltip portfolio-toggle-help" tabIndex={0} onClick={(event) => event.stopPropagation()}>
+      ?
+      <span className="info-tooltip-card portfolio-formula-card">
+        <strong>Gray point (Random portfolio)</strong>
+        <span>One portfolio made by randomly mixing the selected asset weights.</span>
+        <span>Example</span>
+        <code>A 50%, B 30%, C 20%</code>
+        <code>A 10%, B 70%, C 20%</code>
+        <code>A 40%, B 40%, C 20%</code>
+      </span>
+    </span>
+  );
+}
+
+function AxisHelp({ type }: { type: "risk" | "return" }) {
+  const isRisk = type === "risk";
+
+  return (
+    <span className="info-tooltip portfolio-axis-help" tabIndex={0}>
+      ?
+      <span className="info-tooltip-card portfolio-formula-card">
+        {isRisk ? (
+          <>
+            <strong>Risk</strong>
+            <code>sigma_p = sqrt(w^T Sigma w)</code>
+            <span>Sigma: covariance matrix between assets.</span>
+            <span>It reflects not only volatility, but also how assets move together.</span>
+          </>
+        ) : (
+          <>
+            <strong>Expected return</strong>
+            <code>E(Rp) = w1 mu1 + w2 mu2 + ... + wn mun</code>
+            <span>wi: asset weight</span>
+            <span>mui: average return of each asset</span>
+          </>
+        )}
+      </span>
+    </span>
+  );
+}
+
 export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) {
   const [portfolioAssets, setPortfolioAssets] = useState<PortfolioAssetInput[]>([
     { ticker: "AAPL", weight: 34 },
@@ -317,10 +360,7 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
           onClick={() => setShowRandom((current) => !current)}
         >
           <span>Show Random Portfolios</span>
-          <ToggleHelp>
-            Random portfolios are thousands of test allocations made only from your selected tickers. The system changes
-            the weights between those same assets to show other possible risk-return outcomes.
-          </ToggleHelp>
+          <RandomPortfolioHelp />
         </button>
         <button
           type="button"
@@ -368,6 +408,18 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
         </div>
 
         <div className="portfolio-chart-shell">
+          <div className="portfolio-axis-guide">
+            <div>
+              <span>X-axis</span>
+              <strong>Risk</strong>
+              <AxisHelp type="risk" />
+            </div>
+            <div>
+              <span>Y-axis</span>
+              <strong>Expected return</strong>
+              <AxisHelp type="return" />
+            </div>
+          </div>
           <ResponsiveContainer width="100%" height={420}>
             <ComposedChart margin={{ top: 10, right: 16, bottom: 8, left: 8 }}>
               <CartesianGrid stroke="rgba(255,255,255,0.06)" />
