@@ -38,6 +38,17 @@ export type BatchChartResponse = {
   unavailable: string[];
 };
 
+export type RiskFreeRateResponse = {
+  rate: number;
+  rate_percent: number;
+  source: string;
+  series_id: string;
+  as_of: string | null;
+  last_updated_timestamp: string;
+  is_fallback: boolean;
+  note: string;
+};
+
 function normalizeApiBaseUrl(value: string) {
   return value.replace(/\/+$/, "");
 }
@@ -117,4 +128,14 @@ export async function fetchBatchHistoricalCloseSeries(tickers: string[]): Promis
   }
 
   return (await response.json()) as BatchChartResponse;
+}
+
+export async function fetchRiskFreeRate(): Promise<RiskFreeRateResponse> {
+  const response = await fetch(buildApiUrl("/api/risk-free-rate"));
+
+  if (!response.ok) {
+    throw new Error(await parseError(response, `Risk-free rate request failed with ${response.status}`));
+  }
+
+  return (await response.json()) as RiskFreeRateResponse;
 }

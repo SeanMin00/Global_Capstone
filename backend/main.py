@@ -17,7 +17,9 @@ from psycopg.types.json import Jsonb
 
 from market_risk import (
     COUNTRY_CONFIGS,
+    FRED_SERIES_URL,
     RISK_COUNTRY_ORDER,
+    fred_api_key,
     load_market_risk_scores,
     market_risk_ready,
     refresh_market_risk_pipeline,
@@ -57,6 +59,9 @@ GDELT_QUERY = os.getenv(
     "(economy OR markets OR stocks OR inflation OR trade OR oil)",
 )
 GDELT_MAX_RECORDS = int(os.getenv("GDELT_MAX_RECORDS", "60"))
+RISK_FREE_SERIES_ID = "DGS3MO"
+RISK_FREE_SOURCE = "FRED - 3-Month Treasury Constant Maturity (DGS3MO)"
+RISK_FREE_FALLBACK_RATE = float(os.getenv("RISK_FREE_RATE_FALLBACK", "0.04"))
 
 def parse_cors_origins() -> list[str]:
     raw_origins = [
@@ -141,6 +146,68 @@ def build_region_summary(
 
 def db_url() -> str:
     return os.getenv("SUPABASE_DB_URL", "")
+
+
+def risk_free_fallback_payload(reason: str) -> dict[str, Any]:
+    return {
+        "rate": RISK_FREE_FALLBACK_RATE,
+        "rate_percent": round(RISK_FREE_FALLBACK_RATE * 100, 4),
+        "source": RISK_FREE_SOURCE,
+        "series_id": RISK_FREE_SERIES_ID,
+        "as_of": None,
+        "last_updated_timestamp": now_utc().isoformat(),
+        "is_fallback": True,
+        "note": f"Using fallback value. {reason}",
+    }
+
+
+async def fetch_risk_free_rate_payload() -> dict[str, Any]:
+    # DGS3MO is used as the MVP risk-free proxy because short-term U.S.
+    # Treasury yields are a common practical approximation for near-zero-risk USD returns.
+    if not fred_api_key():
+        return risk_free_fallback_payload("FRED_API_KEY is not configured.")
+
+    try:
+        async with httpx.AsyncClient(timeout=12) as client:
+            response = await client.get(
+                FRED_SERIES_URL,
+                params={
+                    "series_id": RISK_FREE_SERIES_ID,
+                    "api_key": fred_api_key(),
+                    "file_type": "json",
+                    "sort_order": "desc",
+                    "limit": 10,
+                },
+            )
+            response.raise_for_status()
+            payload = response.json()
+    except Exception as exc:
+        return risk_free_fallback_payload(f"Live FRED fetch failed: {exc}")
+
+    observations = payload.get("observations", [])
+    for observation in observations:
+        raw_value = observation.get("value")
+        if raw_value and raw_value != ".":
+            try:
+                # FRED returns DGS3MO as percent per annum, e.g. 5.21.
+                # The frontend analytics expects decimal form, e.g. 0.0521.
+                rate_percent = float(raw_value)
+                rate = rate_percent / 100
+            except ValueError:
+                continue
+
+            return {
+                "rate": rate,
+                "rate_percent": round(rate_percent, 4),
+                "source": RISK_FREE_SOURCE,
+                "series_id": RISK_FREE_SERIES_ID,
+                "as_of": observation.get("date"),
+                "last_updated_timestamp": now_utc().isoformat(),
+                "is_fallback": False,
+                "note": "Live FRED value.",
+            }
+
+    return risk_free_fallback_payload("FRED returned no usable DGS3MO observation.")
 
 
 def db_configured() -> bool:
@@ -1170,6 +1237,11 @@ def chart_batch(
         raise
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Failed to fetch batch chart data: {exc}") from exc
+
+
+@app.get("/api/risk-free-rate")
+async def risk_free_rate() -> dict[str, Any]:
+    return await fetch_risk_free_rate_payload()
 
 
 @app.post("/api/market-risk/refresh")

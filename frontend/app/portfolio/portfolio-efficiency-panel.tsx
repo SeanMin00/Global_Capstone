@@ -14,7 +14,12 @@ import {
 } from "recharts";
 import { analyzePortfolioCml, sanitizePortfolioAssets, type PortfolioAssetInput } from "./cml";
 import { DEFAULT_RISK_FREE_RATE } from "./cml-config";
-import { fetchBatchHistoricalCloseSeries, type HistoricalClosePoint } from "../stocks/stock-api";
+import {
+  fetchBatchHistoricalCloseSeries,
+  fetchRiskFreeRate,
+  type HistoricalClosePoint,
+  type RiskFreeRateResponse,
+} from "../stocks/stock-api";
 
 type ProfilePreferences = {
   investmentGoal: string;
@@ -170,6 +175,21 @@ function AxisHelp({ type }: { type: "risk" | "return" }) {
   );
 }
 
+function RiskFreeRateHelp() {
+  return (
+    <span className="info-tooltip portfolio-axis-help" tabIndex={0}>
+      ?
+      <span className="info-tooltip-card portfolio-formula-card">
+        <strong>Risk-free rate</strong>
+        <span>Theoretical return from a zero-risk asset.</span>
+        <span>Commonly proxied by short-term U.S. Treasury yields.</span>
+        <span>On the chart, this is the point where risk = 0.</span>
+        <span>It serves as the starting point of the Capital Market Line (CML).</span>
+      </span>
+    </span>
+  );
+}
+
 export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) {
   const [portfolioAssets, setPortfolioAssets] = useState<PortfolioAssetInput[]>([
     { ticker: "AAPL", weight: 34 },
@@ -183,9 +203,51 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
   const [showRandom, setShowRandom] = useState(true);
   const [showFrontier, setShowFrontier] = useState(true);
   const [showCml, setShowCml] = useState(true);
+  const [riskFreeRateInfo, setRiskFreeRateInfo] = useState<RiskFreeRateResponse | null>(null);
+  const [riskFreeRateLoading, setRiskFreeRateLoading] = useState(false);
 
   const normalizedAssets = useMemo(() => sanitizePortfolioAssets(portfolioAssets), [portfolioAssets]);
   const uniqueTickers = useMemo(() => uniqueAssetTicker(portfolioAssets), [portfolioAssets]);
+  const activeRiskFreeRate = riskFreeRateInfo?.rate ?? DEFAULT_RISK_FREE_RATE;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadRiskFreeRate() {
+      try {
+        setRiskFreeRateLoading(true);
+        const payload = await fetchRiskFreeRate();
+        if (!cancelled) {
+          setRiskFreeRateInfo(payload);
+        }
+      } catch {
+        if (!cancelled) {
+          // If the official FRED fetch path is unavailable, the CML math keeps using
+          // this single centralized fallback config instead of a hidden chart constant.
+          setRiskFreeRateInfo({
+            rate: DEFAULT_RISK_FREE_RATE,
+            rate_percent: DEFAULT_RISK_FREE_RATE * 100,
+            source: "FRED - 3-Month Treasury Constant Maturity (DGS3MO)",
+            series_id: "DGS3MO",
+            as_of: null,
+            last_updated_timestamp: new Date().toISOString(),
+            is_fallback: true,
+            note: "Using fallback value. Risk-free rate API unavailable.",
+          });
+        }
+      } finally {
+        if (!cancelled) {
+          setRiskFreeRateLoading(false);
+        }
+      }
+    }
+
+    loadRiskFreeRate();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const missingTickers = uniqueTickers.filter((ticker) => !priceHistoryCache[ticker]);
@@ -236,8 +298,9 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
   }, [priceHistoryCache, uniqueTickers]);
 
   const analysis = useMemo(
-    () => analyzePortfolioCml(normalizedAssets.assets, priceHistoryCache, { riskFreeRate: DEFAULT_RISK_FREE_RATE }),
-    [normalizedAssets.assets, priceHistoryCache],
+    // The fetched DGS3MO risk-free proxy enters Sharpe ratio and CML calculations here.
+    () => analyzePortfolioCml(normalizedAssets.assets, priceHistoryCache, { riskFreeRate: activeRiskFreeRate }),
+    [activeRiskFreeRate, normalizedAssets.assets, priceHistoryCache],
   );
 
   const chartSummary = analysis.summary;
@@ -286,7 +349,7 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
         </div>
         <div className="portfolio-header-chips">
           <span className="map-chip">1Y lookback</span>
-          <span className="map-chip">Rf {formatPercent(DEFAULT_RISK_FREE_RATE)}</span>
+          <span className="map-chip">Rf {formatPercent(activeRiskFreeRate)}</span>
         </div>
       </div>
 
@@ -418,6 +481,21 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
           ))}
         </div>
       ) : null}
+
+      <section className="portfolio-risk-free-card">
+        <div>
+          <span className="eyebrow">Risk-free rate</span>
+          <h3>
+            {formatPercent(activeRiskFreeRate)}
+            <RiskFreeRateHelp />
+          </h3>
+        </div>
+        <div className="portfolio-risk-free-meta">
+          <span>Source: {riskFreeRateInfo?.source ?? "FRED - 3-Month Treasury Constant Maturity (DGS3MO)"}</span>
+          <span>As of: {riskFreeRateInfo?.as_of ?? "N/A"}</span>
+          <span>{riskFreeRateLoading ? "Loading official rate..." : riskFreeRateInfo?.note ?? "Using fallback value."}</span>
+        </div>
+      </section>
 
       <section className="portfolio-chart-card">
         <div className="portfolio-chart-header">
