@@ -1672,22 +1672,6 @@ export default function ExplorePage() {
                       </div>
                     </div>
 
-                    <div className="bottom-summary">
-                      {(mapFocusRegion ? detailRegionsByGroup[mapFocusRegion] : articleSortedRegions).map((region) => (
-                        <button
-                          key={region.region}
-                          type="button"
-                          className={`summary-card ${region.region === selectedRegion ? "active" : ""}`}
-                          onClick={() => selectRegion(region.region)}
-                        >
-                          <span>{region.region_name}</span>
-                          <strong>
-                            Mcap: {Math.round(getRegionMarketCap(region.region))}B · Sentiment:{" "}
-                            {region.sentiment.toFixed(2)}
-                          </strong>
-                        </button>
-                      ))}
-                    </div>
                   </section>
 
                   <aside className="news-panel">
@@ -1708,6 +1692,15 @@ export default function ExplorePage() {
                           <p className="summary-hero-copy">{activeRegion.summary}</p>
                         </div>
 
+                        <div className="sentiment-scale">
+                          <span className="sentiment-scale-edge">Negative</span>
+                          <strong className="sentiment-scale-value">
+                            Sentiment: {activeRegion.sentiment >= 0 ? "+" : ""}
+                            {activeRegion.sentiment.toFixed(2)}
+                          </strong>
+                          <span className="sentiment-scale-edge sentiment-scale-edge-right">Positive</span>
+                        </div>
+
                         <div className="sentiment-bar">
                           <div
                             className="sentiment-bar-fill"
@@ -1719,10 +1712,6 @@ export default function ExplorePage() {
                         </div>
 
                         <div className="news-metrics">
-                          <div className="metric-box">
-                            <span>Sentiment</span>
-                            <strong>{activeRegion.sentiment.toFixed(2)}</strong>
-                          </div>
                           <div className="metric-box">
                             <span>Market risk</span>
                             <strong>

@@ -2241,13 +2241,6 @@ select {
   font-size: 1.25rem;
 }
 
-.bottom-summary {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  margin-top: 16px;
-}
-
 .map-legend {
   position: absolute;
   left: 18px;
@@ -2353,30 +2346,6 @@ select {
   line-height: 1.5;
 }
 
-.summary-card {
-  border: 1px solid var(--border);
-  border-radius: 22px;
-  background: rgba(255, 255, 255, 0.03);
-  padding: 14px;
-  cursor: pointer;
-  color: inherit;
-}
-
-.summary-card span {
-  display: block;
-  color: var(--muted);
-  margin-bottom: 8px;
-}
-
-.summary-card strong {
-  font-size: 0.95rem;
-}
-
-.summary-card.active {
-  border-color: rgba(217, 255, 63, 0.32);
-  background: rgba(217, 255, 63, 0.08);
-}
-
 .news-subtitle {
   margin: 8px 0 0;
   color: var(--muted);
@@ -2415,8 +2384,35 @@ select {
   line-height: 1.75;
 }
 
-.sentiment-bar {
+.sentiment-scale {
   margin-top: 18px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  color: #f8fafc;
+}
+
+.sentiment-scale-edge {
+  font-size: 0.94rem;
+  font-weight: 600;
+  color: rgba(226, 232, 240, 0.88);
+}
+
+.sentiment-scale-edge-right {
+  text-align: right;
+}
+
+.sentiment-scale-value {
+  font-size: 1.08rem;
+  font-weight: 700;
+  color: #f8fafc;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.sentiment-bar {
+  margin-top: 10px;
   height: 12px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.06);
@@ -2726,7 +2722,4 @@ select {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .bottom-summary {
-    grid-template-columns: 1fr;
-  }
 }
