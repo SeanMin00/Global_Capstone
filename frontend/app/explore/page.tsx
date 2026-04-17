@@ -1615,9 +1615,6 @@ export default function ExplorePage() {
                         <p className="eyebrow">Map view</p>
                         <h2>Regional sentiment map</h2>
                       </div>
-                      <div className="map-chip">
-                        {mapFocusRegion ? `${mapRegionLookup.get(mapFocusRegion)?.region_name} focus` : "Global view"}
-                      </div>
                     </div>
 
                     {mapFocusRegion ? (
@@ -1705,7 +1702,7 @@ export default function ExplorePage() {
 
                         <div className="summary-hero-card">
                           <div className="summary-hero-top">
-                            <span className="summary-hero-label">Daily Brief</span>
+                            <span className="summary-hero-label">Summary</span>
                             <div className="sentiment-pill">{sentimentLabel(activeRegion.sentiment)}</div>
                           </div>
                           <p className="summary-hero-copy">{activeRegion.summary}</p>

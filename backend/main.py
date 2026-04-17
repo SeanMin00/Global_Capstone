@@ -123,6 +123,52 @@ def sentiment_label(score: float) -> str:
     return "neutral"
 
 
+def _normalized_article_title(article: dict[str, Any]) -> str:
+    return re.sub(r"\s+", " ", (article.get("title") or "").strip())
+
+
+def _is_english_summary_candidate(title: str) -> bool:
+    if not title:
+        return False
+    if _contains_cjk(title) or _contains_hangul(title) or _contains_kana(title):
+        return False
+
+    ascii_letters = sum(1 for char in title if char.isascii() and char.isalpha())
+    return ascii_letters >= 8
+
+
+def _english_topic_phrase(topic: str | None) -> str:
+    mapping = {
+        "technology": "technology and chip activity",
+        "energy": "energy-market moves",
+        "trade": "trade and supply-chain changes",
+        "inflation": "rates and inflation updates",
+        "banking": "banking and credit developments",
+        "manufacturing": "factory and order signals",
+        "consumer": "consumer-demand trends",
+        "geopolitics": "geopolitical developments",
+    }
+    return mapping.get(topic or "", "market-moving developments")
+
+
+def _english_region_summary_fallback(
+    *,
+    region_name: str,
+    article: dict[str, Any],
+    sentiment_score: float,
+) -> str:
+    source_name = article.get("source_name") or article.get("source") or "Global media"
+    topic_tags = article.get("topic_tags") or []
+    topic_phrase = _english_topic_phrase(topic_tags[0] if topic_tags else None)
+    tone = sentiment_label(sentiment_score)
+
+    if tone == "positive":
+        return f"{source_name} reports {topic_phrase} supporting {region_name} markets."
+    if tone == "negative":
+        return f"{source_name} reports {topic_phrase} pressuring {region_name} markets."
+    return f"{source_name} reports {topic_phrase} shaping {region_name} markets."
+
+
 def build_region_summary(
     *,
     region_name: str,
@@ -133,18 +179,40 @@ def build_region_summary(
     if not articles:
         return f"{region_name} has no major market update yet."
 
-    primary_article = articles[0]
-    primary_title = re.sub(r"\s+", " ", (primary_article.get("title") or "").strip())
+    english_article = next(
+        (article for article in articles if _is_english_summary_candidate(_normalized_article_title(article))),
+        None,
+    )
+    primary_article = english_article or articles[0]
+    primary_title = _normalized_article_title(primary_article)
     if primary_title:
         trimmed = primary_title.rstrip(".")
-        if len(trimmed) > 120:
-            trimmed = trimmed[:117].rsplit(" ", 1)[0]
-            return f"{trimmed}..."
-        return f"{trimmed}."
+        if _is_english_summary_candidate(trimmed):
+            if len(trimmed) > 120:
+                trimmed = trimmed[:117].rsplit(" ", 1)[0]
+                return f"{trimmed}..."
+            return f"{trimmed}."
+
+        fallback = _english_region_summary_fallback(
+            region_name=region_name,
+            article=primary_article,
+            sentiment_score=sentiment_score,
+        )
+        if len(fallback) > 120:
+            fallback = fallback[:117].rsplit(" ", 1)[0]
+            return f"{fallback}..."
+        return fallback
 
     source_name = primary_article.get("source_name") or primary_article.get("source") or region_name
-    tone = sentiment_label(sentiment_score)
-    return f"{source_name} moved the latest {region_name} market story into {tone} territory."
+    fallback = _english_region_summary_fallback(
+        region_name=region_name,
+        article={"source_name": source_name, "topic_tags": primary_article.get("topic_tags") or []},
+        sentiment_score=sentiment_score,
+    )
+    if len(fallback) > 120:
+        fallback = fallback[:117].rsplit(" ", 1)[0]
+        return f"{fallback}..."
+    return fallback
 
 
 def db_url() -> str:
