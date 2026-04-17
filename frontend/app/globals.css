@@ -366,7 +366,7 @@ select {
 
 .hero {
   display: flex;
-  justify-content: space-between;
+  align-items: center;
   gap: 20px;
   border: 1px solid var(--border);
   border-radius: 32px;
@@ -377,13 +377,18 @@ select {
   padding: 28px;
 }
 
+.hero-copy-block {
+  width: 100%;
+}
+
 .hero h1 {
-  margin: 10px 0 0;
-  font-size: clamp(2rem, 5vw, 4rem);
-  line-height: 0.96;
+  margin: 0;
+  font-size: clamp(1.6rem, 3.2vw, 2.4rem);
+  line-height: 1.02;
 }
 
 .hero-copy {
+  margin: 12px 0 0;
   max-width: 840px;
   color: var(--muted);
   line-height: 1.7;

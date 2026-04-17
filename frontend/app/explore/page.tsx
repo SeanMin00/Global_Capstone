@@ -1554,12 +1554,10 @@ export default function ExplorePage() {
 
         <div className="explore-main">
           <header className="hero">
-            <div>
-              <p className="eyebrow">Minimal working MVP</p>
-              <h1>Global News Pulse</h1>
+            <div className="hero-copy-block">
+              <h1>{viewModeLabel(viewMode)}</h1>
               <p className="hero-copy">{viewModeCopy(viewMode)}</p>
             </div>
-            <div className="hero-badge">{viewModeLabel(viewMode)}</div>
           </header>
 
           {loading ? <div className="state-card">Loading live news from GDELT...</div> : null}
