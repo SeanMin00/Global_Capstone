@@ -389,8 +389,11 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
       <div className="portfolio-builder-grid">
         <section className="portfolio-input-panel">
           <div className="portfolio-section-header">
-            <strong>Portfolio inputs</strong>
-            <span>Select tickers and assign weights.</span>
+            <div>
+              <strong>Portfolio inputs</strong>
+              <span>Select tickers and assign weights.</span>
+            </div>
+            <strong className="portfolio-section-total">{normalizedAssets.inputWeightTotal.toFixed(1)}%</strong>
           </div>
 
           <div className="portfolio-asset-list">
@@ -443,61 +446,79 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
           ) : null}
         </section>
 
-        <aside className="portfolio-context-panel">
-          <div className="portfolio-section-header">
-            <strong>Investor context</strong>
-            <span>Reusing the current profile inputs.</span>
-          </div>
+        <div className="portfolio-side-stack">
+          <aside className="portfolio-context-panel">
+            <div className="portfolio-section-header">
+              <div>
+                <strong>Investor context</strong>
+                <span>Reusing the current profile inputs.</span>
+              </div>
+            </div>
 
-          <div className="portfolio-context-grid">
-            <div className="portfolio-context-card">
-              <span>Goal</span>
-              <strong>{humanize(profilePreferences.investmentGoal)}</strong>
+            <div className="portfolio-context-grid">
+              <div className="portfolio-context-card portfolio-context-card-wide">
+                <span>Goal</span>
+                <strong>{humanize(profilePreferences.investmentGoal)}</strong>
+              </div>
+              <div className="portfolio-context-card">
+                <span>Horizon</span>
+                <strong>{humanize(profilePreferences.investmentHorizon)}</strong>
+              </div>
+              <div className="portfolio-context-card">
+                <span>Risk aversion</span>
+                <strong>{profilePreferences.riskAversion}</strong>
+              </div>
+              <div className="portfolio-context-card portfolio-context-card-wide">
+                <span>Loss tolerance</span>
+                <strong>{profilePreferences.lossTolerance}%</strong>
+              </div>
             </div>
-            <div className="portfolio-context-card">
-              <span>Horizon</span>
-              <strong>{humanize(profilePreferences.investmentHorizon)}</strong>
-            </div>
-            <div className="portfolio-context-card">
-              <span>Risk aversion</span>
-              <strong>{profilePreferences.riskAversion}</strong>
-            </div>
-            <div className="portfolio-context-card">
-              <span>Loss tolerance</span>
-              <strong>{profilePreferences.lossTolerance}%</strong>
-            </div>
-          </div>
-        </aside>
-      </div>
+          </aside>
 
-      <div className="portfolio-toggle-row">
-        <button
-          type="button"
-          className={`portfolio-toggle ${showRandom ? "active" : ""}`}
-          onClick={() => setShowRandom((current) => !current)}
-        >
-          <span>Show Random Portfolios</span>
-          <RandomPortfolioHelp />
-        </button>
-        <button
-          type="button"
-          className={`portfolio-toggle ${showFrontier ? "active" : ""}`}
-          onClick={() => setShowFrontier((current) => !current)}
-        >
-          <span>Show Frontier</span>
-          <ToggleHelp>
-            The frontier highlights the best simulated portfolios for each risk level. Points below it may be taking more
-            risk than needed for their expected return.
-          </ToggleHelp>
-        </button>
-        <button
-          type="button"
-          className={`portfolio-toggle ${showCml ? "active" : ""}`}
-          onClick={() => setShowCml((current) => !current)}
-        >
-          <span>Show CML</span>
-          <CmlHelp />
-        </button>
+          <aside className="portfolio-context-panel portfolio-analysis-panel">
+            <div className="portfolio-section-header">
+              <div>
+                <strong>Analysis settings</strong>
+                <span>Select the layers to display on the chart.</span>
+              </div>
+            </div>
+
+            <div className="portfolio-analysis-options">
+              <button
+                type="button"
+                className={`portfolio-toggle ${showRandom ? "active" : ""}`}
+                onClick={() => setShowRandom((current) => !current)}
+              >
+                <span>Show Random Portfolios</span>
+                <RandomPortfolioHelp />
+              </button>
+              <button
+                type="button"
+                className={`portfolio-toggle ${showFrontier ? "active" : ""}`}
+                onClick={() => setShowFrontier((current) => !current)}
+              >
+                <span>Show Frontier</span>
+                <ToggleHelp>
+                  The frontier highlights the best simulated portfolios for each risk level. Points below it may be taking
+                  more risk than needed for their expected return.
+                </ToggleHelp>
+              </button>
+              <button
+                type="button"
+                className={`portfolio-toggle ${showCml ? "active" : ""}`}
+                onClick={() => setShowCml((current) => !current)}
+              >
+                <span>Show CML</span>
+                <CmlHelp />
+              </button>
+            </div>
+
+            <div className="portfolio-analysis-footer">
+              <span>Lookback: 1Y</span>
+              <span>Risk-free rate: {formatPercent(activeRiskFreeRate)}</span>
+            </div>
+          </aside>
+        </div>
       </div>
 
       {loading ? <div className="state-card">Loading price history for selected assets...</div> : null}
@@ -615,13 +636,10 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
         </div>
       </section>
 
-      <section className="portfolio-readout-section">
-        <div className="portfolio-readout-header">
-          <span className="eyebrow">Selected portfolio readout</span>
-          <p>These metrics summarize the portfolio weights you entered above.</p>
-        </div>
-        <div className="portfolio-readout-layout">
-          <div className="portfolio-summary-grid portfolio-user-summary-grid">
+      <section className="portfolio-bottom-grid">
+        <div className="portfolio-summary-panel">
+          <span className="eyebrow">My portfolio</span>
+          <div className="portfolio-summary-stack">
             <div className="portfolio-summary-card">
               <span>Expected return</span>
               <strong>{formatPercent(analysis.userPortfolio.return)}</strong>
@@ -634,6 +652,37 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
               <span>Sharpe ratio</span>
               <strong>{formatSharpe(analysis.userPortfolio.sharpe)}</strong>
             </div>
+          </div>
+        </div>
+
+        <div className="portfolio-summary-panel">
+          <span className="eyebrow">Tangency portfolio</span>
+          {analysis.tangencyPortfolio ? (
+            <div className="portfolio-summary-stack">
+              <div className="portfolio-summary-card">
+                <span>Expected return</span>
+                <strong>{formatPercent(analysis.tangencyPortfolio.return)}</strong>
+              </div>
+              <div className="portfolio-summary-card">
+                <span>Volatility</span>
+                <strong>{formatPercent(analysis.tangencyPortfolio.risk)}</strong>
+              </div>
+              <div className="portfolio-summary-card">
+                <span>Sharpe ratio</span>
+                <strong>{formatSharpe(analysis.tangencyPortfolio.sharpe)}</strong>
+              </div>
+            </div>
+          ) : (
+            <div className="portfolio-summary-card">
+              <span>Status</span>
+              <strong>Not available</strong>
+            </div>
+          )}
+        </div>
+
+        <div className="portfolio-summary-panel">
+          <span className="eyebrow">Benchmarks</span>
+          <div className="portfolio-summary-stack">
             <div className="portfolio-summary-card">
               <span className="portfolio-summary-label">
                 Risk-free rate
@@ -642,50 +691,29 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
               <strong>{formatPercent(chartSummary.riskFreeRate)}</strong>
               <small>
                 {riskFreeRateInfo?.source ?? "FRED - 3-Month Treasury Constant Maturity (DGS3MO)"}
-                {riskFreeRateInfo?.as_of ? ` · As of ${riskFreeRateInfo.as_of}` : " · Using fallback value"}
+                {riskFreeRateInfo?.as_of ? ` · ${riskFreeRateInfo.as_of}` : " · Using fallback value"}
               </small>
             </div>
+            <div className="portfolio-summary-card">
+              <span>Tangency weights</span>
+              <div className="portfolio-weight-chip-row">
+                {Object.entries(tangencyWeights).map(([ticker, weight]) => (
+                  <div key={ticker} className="portfolio-weight-chip">
+                    <span>{ticker}</span>
+                    <strong>{formatWeight(weight * 100)}</strong>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
+        </div>
 
-          <div className="portfolio-interpretation-card">
-            <span className="eyebrow">Interpretation</span>
-            <h3>Beginner-friendly readout</h3>
-            <p>{chartSummary.interpretation}</p>
-          </div>
+        <div className="portfolio-interpretation-card">
+          <span className="eyebrow">Interpretation</span>
+          <h3>Beginner-friendly readout</h3>
+          <p>{chartSummary.interpretation}</p>
         </div>
       </section>
-
-      {analysis.tangencyPortfolio ? (
-        <div className="portfolio-tangency-card">
-          <div className="portfolio-section-header">
-            <strong>Tangency portfolio approximation</strong>
-            <span>Best Sharpe portfolio from the random long-only simulation.</span>
-          </div>
-          <div className="portfolio-summary-grid">
-            <div className="portfolio-summary-card">
-              <span>Return</span>
-              <strong>{formatPercent(analysis.tangencyPortfolio.return)}</strong>
-            </div>
-            <div className="portfolio-summary-card">
-              <span>Risk</span>
-              <strong>{formatPercent(analysis.tangencyPortfolio.risk)}</strong>
-            </div>
-            <div className="portfolio-summary-card">
-              <span>Sharpe</span>
-              <strong>{formatSharpe(analysis.tangencyPortfolio.sharpe)}</strong>
-            </div>
-          </div>
-
-          <div className="portfolio-weight-chip-row">
-            {Object.entries(tangencyWeights).map(([ticker, weight]) => (
-              <div key={ticker} className="portfolio-weight-chip">
-                <span>{ticker}</span>
-                <strong>{formatWeight(weight * 100)}</strong>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }

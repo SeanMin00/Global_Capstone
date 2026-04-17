@@ -730,6 +730,14 @@ function getRegionMarketCap(region: RegionCode) {
     .reduce((sum, stock) => sum + stock.marketCap, 0);
 }
 
+function formatMarketCapBillions(value: number) {
+  return `${Math.round(value).toLocaleString()}B`;
+}
+
+function formatMarketCapUsd(value: number) {
+  return `${formatMarketCapBillions(value)} USD`;
+}
+
 function isAsiaFamily(region: RegionCode) {
   return region === "ASIA" || ASIA_DETAIL_REGIONS.includes(region);
 }
@@ -1580,7 +1588,7 @@ export default function ExplorePage() {
                           }}
                         >
                           <span>{regionLabels[region.region]}</span>
-                          <strong>{Math.round(getRegionMarketCap(region.region))}B mcap</strong>
+                          <strong>{formatMarketCapUsd(getRegionMarketCap(region.region))}</strong>
                         </button>
                       ))
                     : articleSortedRegions.map((region) => (
@@ -1644,7 +1652,7 @@ export default function ExplorePage() {
                               }}
                             >
                               <span>{regionLabels[region.region]}</span>
-                              <strong>{Math.round(getRegionMarketCap(region.region))}B</strong>
+                              <strong>{formatMarketCapBillions(getRegionMarketCap(region.region))}</strong>
                             </button>
                           ))}
                         </div>
@@ -1721,10 +1729,6 @@ export default function ExplorePage() {
                                   ? displayedMarketRisk.market_risk_score.toFixed(1)
                                   : "--"}
                             </strong>
-                          </div>
-                          <div className="metric-box">
-                            <span>Market cap</span>
-                            <strong>{Math.round(getRegionMarketCap(activeRegion.region))}B</strong>
                           </div>
                           <div className="metric-box">
                             <span>Articles</span>
@@ -1879,11 +1883,11 @@ export default function ExplorePage() {
                             >
                               {sector}
                               <span className="sector-cap">
-                                {Math.round(
+                                {formatMarketCapBillions(
                                   regionStocks
                                     .filter((stock) => stock.sector === sector)
                                     .reduce((sum, stock) => sum + stock.marketCap, 0),
-                                )}B
+                                )}
                               </span>
                             </button>
                           ))}
@@ -1960,8 +1964,8 @@ export default function ExplorePage() {
                                 </div>
                                 <p>{segment.trendSummary}</p>
                                 <div className="structure-metric-row">
-                                  <span>Avg Mkt Cap</span>
-                                  <strong>{segment.avgMarketCap}B</strong>
+                                  <span>Avg Market Cap</span>
+                                  <strong>{formatMarketCapUsd(segment.avgMarketCap)}</strong>
                                 </div>
                                 <div className="structure-metric-row">
                                   <span>Avg ROI (1Y)</span>
@@ -2020,8 +2024,8 @@ export default function ExplorePage() {
                                     <strong>{activeGlobalSegment.countryCount}</strong>
                                   </div>
                                   <div className="metric-box">
-                                    <span>Avg Mkt Cap</span>
-                                    <strong>{activeGlobalSegment.avgMarketCap}B</strong>
+                                    <span>Avg Market Cap</span>
+                                    <strong>{formatMarketCapUsd(activeGlobalSegment.avgMarketCap)}</strong>
                                   </div>
                                   <div className="metric-box">
                                     <span>Avg ROI (1Y)</span>
@@ -2050,7 +2054,7 @@ export default function ExplorePage() {
                                     </div>
                                     <div className="structure-metric-row">
                                       <span>Market Cap</span>
-                                      <strong>{company.marketCap}B</strong>
+                                      <strong>{formatMarketCapUsd(company.marketCap)}</strong>
                                     </div>
                                     <div className="structure-metric-row">
                                       <span>ROI (1Y)</span>
@@ -2151,8 +2155,8 @@ export default function ExplorePage() {
                             <strong>{regionLabels[selectedStructureCountry]}</strong>
                           </div>
                           <div className="metric-box">
-                            <span>Avg Mkt Cap</span>
-                            <strong>{activeStructureSegment.avgMarketCap}B</strong>
+                            <span>Avg Market Cap</span>
+                            <strong>{formatMarketCapUsd(activeStructureSegment.avgMarketCap)}</strong>
                           </div>
                           <div className="metric-box">
                             <span>Avg ROI (1Y)</span>
@@ -2204,7 +2208,7 @@ export default function ExplorePage() {
                                 <div key={company.ticker} className="comparison-card">
                                   <span>{company.ticker}</span>
                                   <strong>{company.name}</strong>
-                                  <small>Mcap {company.marketCap}B</small>
+                                  <small>{formatMarketCapUsd(company.marketCap)}</small>
                                   <small>ROI {company.roi1Y}%</small>
                                 </div>
                               ))}
@@ -2245,8 +2249,8 @@ export default function ExplorePage() {
                             <strong>{activeGlobalSegment.countryCount}</strong>
                           </div>
                           <div className="metric-box">
-                            <span>Avg Mkt Cap</span>
-                            <strong>{activeGlobalSegment.avgMarketCap}B</strong>
+                            <span>Avg Market Cap</span>
+                            <strong>{formatMarketCapUsd(activeGlobalSegment.avgMarketCap)}</strong>
                           </div>
                           <div className="metric-box">
                             <span>Compare</span>
@@ -2275,7 +2279,7 @@ export default function ExplorePage() {
                                 <span>{regionLabels[company.country]}</span>
                                 <strong>{company.name}</strong>
                                 <small>{company.ticker}</small>
-                                <small>Mcap {company.marketCap}B</small>
+                                <small>{formatMarketCapUsd(company.marketCap)}</small>
                                 <small>ROI {company.roi1Y}%</small>
                               </button>
                             ))}
@@ -2294,7 +2298,7 @@ export default function ExplorePage() {
                                   <span>{regionLabels[(company as typeof company & { country?: Exclude<RegionCode, BaseRegion> }).country ?? selectedStructureCountry]}</span>
                                   <strong>{company.name}</strong>
                                   <small>{company.segment}</small>
-                                  <small>Mcap {company.marketCap}B</small>
+                                  <small>{formatMarketCapUsd(company.marketCap)}</small>
                                   <small>ROI {company.roi1Y}%</small>
                                 </div>
                               ))}
