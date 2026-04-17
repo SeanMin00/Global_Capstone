@@ -2596,6 +2596,50 @@ select {
   margin-top: 6px;
 }
 
+.news-feed-panel {
+  margin-top: 18px;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.02);
+  overflow: hidden;
+}
+
+.news-feed-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 18px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.news-feed-header strong {
+  font-size: 1.28rem;
+  color: var(--text);
+}
+
+.news-feed-header span {
+  color: var(--muted);
+  font-size: 0.96rem;
+  white-space: nowrap;
+}
+
+.news-feed-list {
+  margin-top: 0;
+  gap: 0;
+}
+
+.news-feed-list .article-card {
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 0;
+  background: transparent;
+}
+
+.news-feed-list .article-card:last-child {
+  border-bottom: 0;
+}
+
 .article-list {
   display: grid;
   gap: 12px;

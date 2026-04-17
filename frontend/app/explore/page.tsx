@@ -941,7 +941,6 @@ export default function ExplorePage() {
   const [structureViewMode, setStructureViewMode] = useState<StructureViewMode>("country");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [marketRisk, setMarketRisk] = useState<MarketRiskSnapshot | null>(null);
   const [allMarketRisk, setAllMarketRisk] = useState<MarketRiskSnapshot[]>([]);
   const [marketRiskLoading, setMarketRiskLoading] = useState(false);
   const [marketRiskError, setMarketRiskError] = useState("");
@@ -1062,38 +1061,20 @@ export default function ExplorePage() {
   useEffect(() => {
     async function loadAllMarketRisk() {
       try {
+        setMarketRiskLoading(true);
+        setMarketRiskError("");
         const response = await fetch(buildApiUrl("/api/market-risk"));
-        if (!response.ok) return;
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => null)) as { detail?: string } | null;
+          setAllMarketRisk([]);
+          setMarketRiskError(payload?.detail ?? "Market risk is not available right now.");
+          return;
+        }
         const payload = (await response.json()) as MarketRiskSnapshot[];
         setAllMarketRisk(payload);
       } catch {
         setAllMarketRisk([]);
-      }
-    }
-
-    async function loadMarketRisk() {
-      if (!MARKET_RISK_COUNTRIES.has(selectedRegion)) {
-        setMarketRisk(null);
-        setMarketRiskError("");
-        return;
-      }
-
-      try {
-        setMarketRiskLoading(true);
-        setMarketRiskError("");
-        const response = await fetch(buildApiUrl(`/api/market-risk/${selectedRegion}`));
-        if (!response.ok) {
-          const payload = (await response.json().catch(() => null)) as { detail?: string } | null;
-          setMarketRisk(null);
-          setMarketRiskError(payload?.detail ?? `Market risk is not available for ${selectedRegion} yet.`);
-          return;
-        }
-
-        const payload = (await response.json()) as MarketRiskSnapshot;
-        setMarketRisk(payload);
-      } catch {
-        setMarketRisk(null);
-        setMarketRiskError(`Market risk is not available for ${selectedRegion} right now.`);
+        setMarketRiskError("Market risk is not available right now.");
       } finally {
         setMarketRiskLoading(false);
       }
@@ -1101,9 +1082,12 @@ export default function ExplorePage() {
 
     if (viewMode === "map") {
       loadAllMarketRisk();
-      loadMarketRisk();
+      return;
     }
-  }, [selectedRegion, viewMode]);
+
+    setAllMarketRisk([]);
+    setMarketRiskError("");
+  }, [viewMode]);
 
   const activeRegion = useMemo(
     () => regions.find((region) => region.region === selectedRegion) ?? regions[0],
@@ -1204,10 +1188,7 @@ export default function ExplorePage() {
     if (!activeRegion) return null;
 
     if (ALL_DETAIL_REGIONS.includes(activeRegion.region)) {
-      return (
-        riskLookup.get(activeRegion.region) ??
-        (marketRisk?.iso_code === activeRegion.region ? marketRisk : null)
-      );
+      return riskLookup.get(activeRegion.region) ?? null;
     }
 
     const members = DETAIL_REGIONS[activeRegion.region as BaseRegion] ?? [];
@@ -1220,7 +1201,7 @@ export default function ExplorePage() {
       activeRegion.region_name,
       snapshots,
     );
-  }, [activeRegion, marketRisk, riskLookup]);
+  }, [activeRegion, riskLookup]);
 
   const mapRegionSegments = useMemo(() => {
     function topSegmentsForCountries(countries: Exclude<RegionCode, BaseRegion>[]) {
@@ -1777,36 +1758,42 @@ export default function ExplorePage() {
                           ) : null}
                         </div>
 
-                        <div className="article-list">
-                          {activeRegion.articles.map((article) => (
-                            <a
-                              key={article.url}
-                              href={article.url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="article-card"
-                            >
-                              <div className="article-meta">
-                                <span>{article.source}</span>
-                                <span
-                                  className="article-tone"
-                                  style={{
-                                    color:
-                                      article.sentiment > 0.2
-                                        ? "#86efac"
-                                        : article.sentiment < -0.2
-                                          ? "#fca5a5"
-                                          : "#fde68a",
-                                  }}
-                                >
-                                  {sentimentLabel(article.sentiment)}
-                                </span>
-                              </div>
-                              <h3>{article.title}</h3>
-                              <p>Open original article</p>
-                            </a>
-                          ))}
-                        </div>
+                        <section className="news-feed-panel">
+                          <div className="news-feed-header">
+                            <strong>{activeRegion.region_name} Latest News</strong>
+                            <span>{activeRegion.count} articles</span>
+                          </div>
+                          <div className="article-list news-feed-list">
+                            {activeRegion.articles.map((article) => (
+                              <a
+                                key={article.url}
+                                href={article.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="article-card"
+                              >
+                                <div className="article-meta">
+                                  <span>{article.source}</span>
+                                  <span
+                                    className="article-tone"
+                                    style={{
+                                      color:
+                                        article.sentiment > 0.2
+                                          ? "#86efac"
+                                          : article.sentiment < -0.2
+                                            ? "#fca5a5"
+                                            : "#fde68a",
+                                    }}
+                                  >
+                                    {sentimentLabel(article.sentiment)}
+                                  </span>
+                                </div>
+                                <h3>{article.title}</h3>
+                                <p>Open original article</p>
+                              </a>
+                            ))}
+                          </div>
+                        </section>
                       </>
                     ) : (
                       <div className="state-card">No region selected.</div>

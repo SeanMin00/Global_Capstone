@@ -65,6 +65,7 @@ RISK_FREE_SERIES_ID = "DGS3MO"
 RISK_FREE_SOURCE = "FRED - 3-Month Treasury Constant Maturity (DGS3MO)"
 RISK_FREE_CSV_URL = f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={RISK_FREE_SERIES_ID}"
 RISK_FREE_FALLBACK_RATE = float(os.getenv("RISK_FREE_RATE_FALLBACK", "0.04"))
+MARKET_RISK_AUTO_REFRESH_DAILY = os.getenv("MARKET_RISK_AUTO_REFRESH_DAILY", "true").lower() != "false"
 
 def parse_cors_origins() -> list[str]:
     raw_origins = [
@@ -339,6 +340,36 @@ def get_connection() -> psycopg.Connection[Any]:
             detail="Database URL is not configured. Add SUPABASE_DB_URL or DATABASE_URL.",
         )
     return psycopg.connect(db_url(), row_factory=dict_row)
+
+
+def market_risk_cache_status(conn: psycopg.Connection[Any]) -> tuple[int, datetime | None]:
+    with conn.cursor(row_factory=dict_row) as cur:
+        row = cur.execute(
+            """
+            select count(*)::int as row_count, max(updated_at) as last_updated_at
+            from public.market_risk_scores
+            """
+        ).fetchone()
+    if not row:
+        return 0, None
+    return row["row_count"], row["last_updated_at"]
+
+
+async def ensure_market_risk_cache(conn: psycopg.Connection[Any]) -> bool:
+    if not MARKET_RISK_AUTO_REFRESH_DAILY or not market_risk_ready():
+        return False
+
+    row_count, last_updated_at = market_risk_cache_status(conn)
+    if row_count > 0 and last_updated_at and last_updated_at.date() >= now_utc().date():
+        return False
+
+    try:
+        await refresh_market_risk_pipeline(conn)
+        conn.commit()
+        return True
+    except Exception:
+        conn.rollback()
+        return False
 
 
 def _contains_cjk(text: str) -> bool:
@@ -1385,7 +1416,7 @@ async def refresh_market_risk() -> dict[str, Any]:
 
 
 @app.get("/api/market-risk")
-def get_market_risk() -> list[dict[str, Any]]:
+async def get_market_risk() -> list[dict[str, Any]]:
     if not db_configured():
         raise HTTPException(
             status_code=503,
@@ -1393,11 +1424,12 @@ def get_market_risk() -> list[dict[str, Any]]:
         )
 
     with get_connection() as conn:
+        await ensure_market_risk_cache(conn)
         return load_market_risk_scores(conn)
 
 
 @app.get("/api/market-risk/{country_code}")
-def get_market_risk_country(country_code: str) -> dict[str, Any]:
+async def get_market_risk_country(country_code: str) -> dict[str, Any]:
     normalized = country_code.upper()
     if normalized not in COUNTRY_CONFIGS:
         raise HTTPException(status_code=404, detail=f"Unsupported country code: {country_code}")
@@ -1408,6 +1440,7 @@ def get_market_risk_country(country_code: str) -> dict[str, Any]:
         )
 
     with get_connection() as conn:
+        await ensure_market_risk_cache(conn)
         rows = load_market_risk_scores(conn, normalized)
     if not rows:
         raise HTTPException(
