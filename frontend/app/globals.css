@@ -2099,7 +2099,7 @@ select {
 
 .portfolio-builder-shell {
   display: grid;
-  gap: 18px;
+  gap: 20px;
 }
 
 .portfolio-builder-header,
@@ -2107,37 +2107,38 @@ select {
 .portfolio-section-header {
   display: flex;
   justify-content: space-between;
-  gap: 16px;
+  gap: 18px;
   align-items: flex-start;
 }
 
 .portfolio-builder-header h2,
 .portfolio-chart-header h3 {
   margin: 8px 0 0;
-  font-size: clamp(2rem, 4vw, 2.9rem);
+  font-size: clamp(1.9rem, 3.6vw, 2.65rem);
+  line-height: 1.02;
 }
 
 .portfolio-copy {
-  max-width: 840px;
+  max-width: 780px;
   color: var(--muted);
-  line-height: 1.7;
+  line-height: 1.75;
 }
 
 .portfolio-header-chips {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
 .portfolio-builder-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.8fr);
-  gap: 18px;
+  grid-template-columns: minmax(0, 1.14fr) minmax(310px, 0.72fr);
+  gap: 20px;
 }
 
 .portfolio-side-stack {
   display: grid;
-  gap: 18px;
+  gap: 14px;
 }
 
 .portfolio-input-panel,
@@ -2145,63 +2146,99 @@ select {
 .portfolio-chart-card,
 .portfolio-interpretation-card,
 .portfolio-tangency-card {
-  border: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 28px;
-  background: rgba(12, 17, 27, 0.92);
-  padding: 20px;
+  background:
+    linear-gradient(180deg, rgba(20, 26, 37, 0.96), rgba(12, 17, 27, 0.96));
+  padding: 22px;
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.24);
+  backdrop-filter: blur(18px);
+}
+
+.portfolio-input-panel::before,
+.portfolio-context-panel::before,
+.portfolio-chart-card::before,
+.portfolio-interpretation-card::before,
+.portfolio-tangency-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.035), transparent 42%);
+  pointer-events: none;
 }
 
 .portfolio-section-header strong {
-  font-size: 1rem;
+  font-size: 1.02rem;
+  color: #f8fafc;
 }
 
 .portfolio-section-header > div {
   display: grid;
-  gap: 4px;
+  gap: 5px;
 }
 
 .portfolio-section-header span {
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: 0.88rem;
 }
 
 .portfolio-section-total {
-  font-size: 1.05rem;
-  color: var(--text);
+  font-size: 1.16rem;
+  color: #f8fafc;
+  font-weight: 700;
 }
 
 .portfolio-asset-list {
   display: grid;
-  gap: 10px;
-  margin-top: 16px;
+  gap: 12px;
+  margin-top: 18px;
 }
 
 .portfolio-asset-row {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) 120px auto;
-  gap: 10px;
+  gap: 12px;
 }
 
 .portfolio-asset-row input,
 .portfolio-add-row input {
   width: 100%;
-  border: 1px solid var(--border);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.04);
   color: var(--text);
-  padding: 12px 14px;
+  padding: 13px 14px;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease;
+}
+
+.portfolio-asset-row input:focus,
+.portfolio-add-row input:focus {
+  outline: none;
+  border-color: rgba(79, 142, 247, 0.42);
+  box-shadow: 0 0 0 4px rgba(79, 142, 247, 0.12);
+  background: rgba(255, 255, 255, 0.055);
 }
 
 .portfolio-ghost-button,
 .portfolio-primary-button,
 .portfolio-chip-button,
 .portfolio-toggle {
-  border: 1px solid var(--border);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.03);
   color: #dbeafe;
   padding: 12px 14px;
   cursor: pointer;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    background 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
 .portfolio-primary-button {
@@ -2209,13 +2246,14 @@ select {
   background: #d9ff3f;
   color: #101826;
   font-weight: 800;
+  box-shadow: 0 14px 28px rgba(217, 255, 63, 0.18);
 }
 
 .portfolio-add-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 10px;
-  margin-top: 14px;
+  gap: 12px;
+  margin-top: 16px;
 }
 
 .portfolio-featured-row,
@@ -2232,7 +2270,7 @@ select {
 .portfolio-chip-button,
 .portfolio-toggle {
   border-radius: 999px;
-  padding: 8px 12px;
+  padding: 9px 13px;
 }
 
 .portfolio-toggle {
@@ -2241,6 +2279,7 @@ select {
   justify-content: space-between;
   gap: 8px;
   width: 100%;
+  background: rgba(255, 255, 255, 0.025);
 }
 
 .portfolio-toggle-help {
@@ -2322,6 +2361,13 @@ select {
   border-color: rgba(217, 255, 63, 0.26);
   background: rgba(217, 255, 63, 0.1);
   color: #efffb8;
+  box-shadow: 0 10px 20px rgba(217, 255, 63, 0.08);
+}
+
+.portfolio-ghost-button:hover,
+.portfolio-primary-button:hover,
+.portfolio-toggle:hover {
+  transform: translateY(-1px);
 }
 
 .portfolio-input-note {
@@ -2329,12 +2375,13 @@ select {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-top: 16px;
+  margin-top: 18px;
   color: var(--muted);
+  font-size: 0.88rem;
 }
 
 .portfolio-input-note strong {
-  color: var(--text);
+  color: #f8fafc;
 }
 
 .portfolio-warning,
@@ -2360,7 +2407,7 @@ select {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
-  margin-top: 16px;
+  margin-top: 18px;
 }
 
 .portfolio-context-card-wide {
@@ -2369,7 +2416,7 @@ select {
 
 .portfolio-analysis-panel {
   display: grid;
-  gap: 16px;
+  gap: 18px;
 }
 
 .portfolio-analysis-options {
@@ -2382,17 +2429,18 @@ select {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding-top: 6px;
+  padding-top: 10px;
   color: var(--muted);
-  font-size: 0.92rem;
+  font-size: 0.82rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
 }
 
 .portfolio-context-card,
 .portfolio-summary-card {
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.03);
-  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.035);
+  padding: 16px;
 }
 
 .portfolio-context-card span,
@@ -2400,11 +2448,14 @@ select {
   display: block;
   color: var(--muted);
   margin-bottom: 8px;
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
 }
 
 .portfolio-context-card strong,
 .portfolio-summary-card strong {
-  font-size: 1.35rem;
+  font-size: 1.8rem;
+  line-height: 1.1;
 }
 
 .portfolio-readout-section {
@@ -2451,11 +2502,12 @@ select {
   margin-top: 16px;
   min-height: 420px;
   border: 1px solid rgba(56, 189, 248, 0.12);
-  border-radius: 24px;
+  border-radius: 26px;
   background:
-    linear-gradient(180deg, rgba(7, 11, 22, 0.85), rgba(12, 17, 27, 0.92)),
+    linear-gradient(180deg, rgba(7, 11, 22, 0.85), rgba(12, 17, 27, 0.94)),
     rgba(255, 255, 255, 0.02);
-  padding: 16px 12px 6px;
+  padding: 18px 14px 8px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .portfolio-axis-guide {
@@ -2478,10 +2530,10 @@ select {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  border: 1px solid var(--border);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.035);
-  padding: 8px 12px;
+  padding: 9px 13px;
 }
 
 .portfolio-axis-guide span {
@@ -2527,7 +2579,7 @@ select {
 
 .portfolio-interpretation-card h3 {
   margin: 8px 0 0;
-  font-size: 1.4rem;
+  font-size: 1.28rem;
 }
 
 .portfolio-interpretation-card p {
@@ -2539,13 +2591,13 @@ select {
 .portfolio-bottom-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
+  gap: 14px;
   align-items: start;
 }
 
 .portfolio-summary-panel {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .portfolio-summary-stack {
@@ -2559,15 +2611,19 @@ select {
 }
 
 .portfolio-bottom-grid .portfolio-summary-card strong {
-  font-size: 1.1rem;
+  font-size: 1.95rem;
 }
 
 .portfolio-bottom-grid .portfolio-interpretation-card {
   height: 100%;
+  background:
+    linear-gradient(180deg, rgba(232, 85, 85, 0.07), rgba(255, 255, 255, 0.025)),
+    rgba(12, 17, 27, 0.92);
+  border-color: rgba(232, 85, 85, 0.18);
 }
 
 .portfolio-weight-chip {
-  border: 1px solid var(--border);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.03);
   padding: 10px 12px;
@@ -2591,6 +2647,7 @@ select {
   border-radius: 16px;
   background: rgba(12, 17, 27, 0.96);
   padding: 12px 14px;
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.28);
 }
 
 .sector-rail {
