@@ -1,5 +1,6 @@
 import csv
 import hashlib
+import math
 import os
 import re
 from collections import Counter, defaultdict
@@ -14,6 +15,7 @@ import psycopg
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
@@ -66,6 +68,16 @@ RISK_FREE_SOURCE = "FRED - 3-Month Treasury Constant Maturity (DGS3MO)"
 RISK_FREE_CSV_URL = f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={RISK_FREE_SERIES_ID}"
 RISK_FREE_FALLBACK_RATE = float(os.getenv("RISK_FREE_RATE_FALLBACK", "0.04"))
 MARKET_RISK_AUTO_REFRESH_DAILY = os.getenv("MARKET_RISK_AUTO_REFRESH_DAILY", "true").lower() != "false"
+
+
+class CapmAssetRequest(BaseModel):
+    ticker: str
+    weight: float = Field(ge=0)
+
+
+class CapmAnalyzeRequest(BaseModel):
+    assets: list[CapmAssetRequest]
+    benchmark_ticker: str = "SPY"
 
 def parse_cors_origins() -> list[str]:
     raw_origins = [
@@ -327,6 +339,120 @@ async def fetch_risk_free_rate_payload() -> dict[str, Any]:
     if csv_payload:
         return csv_payload
     return risk_free_fallback_payload("FRED returned no usable DGS3MO observation.")
+
+
+def normalize_capm_assets(inputs: list[CapmAssetRequest]) -> list[dict[str, Any]]:
+    grouped: dict[str, float] = {}
+    for asset in inputs:
+        ticker = asset.ticker.strip().upper()
+        if not ticker:
+            continue
+        grouped[ticker] = grouped.get(ticker, 0.0) + max(float(asset.weight), 0.0)
+
+    if not grouped:
+        raise HTTPException(status_code=400, detail="At least one portfolio asset is required.")
+
+    total_weight = sum(grouped.values())
+    if total_weight <= 0:
+        equal_weight = 1 / len(grouped)
+        return [{"ticker": ticker, "weight": equal_weight} for ticker in grouped]
+
+    return [{"ticker": ticker, "weight": weight / total_weight} for ticker, weight in grouped.items()]
+
+
+def build_capm_return_matrix(
+    price_series_by_ticker: dict[str, list[dict[str, Any]]],
+    tickers: list[str],
+) -> list[list[float]]:
+    date_sets = [set(point["date"] for point in price_series_by_ticker[ticker]) for ticker in tickers]
+    overlapping_dates = sorted(date_sets[0].intersection(*date_sets[1:]))
+    if len(overlapping_dates) < 2:
+        return []
+
+    aligned_prices = []
+    for ticker in tickers:
+        price_map = {point["date"]: point["close"] for point in price_series_by_ticker[ticker]}
+        aligned_prices.append([price_map[date_value] for date_value in overlapping_dates])
+
+    returns: list[list[float]] = []
+    for index in range(1, len(overlapping_dates)):
+        row: list[float] = []
+        for prices in aligned_prices:
+            previous_close = prices[index - 1]
+            current_close = prices[index]
+            if previous_close is None or current_close is None or previous_close <= 0 or current_close <= 0:
+                row = []
+                break
+            row.append(current_close / previous_close - 1)
+        if row:
+            returns.append(row)
+    return returns
+
+
+def mean(values: list[float]) -> float:
+    if not values:
+        return 0.0
+    return sum(values) / len(values)
+
+
+def sample_covariance(values_a: list[float], values_b: list[float]) -> float:
+    if len(values_a) < 2 or len(values_b) < 2:
+        return 0.0
+    mean_a = mean(values_a)
+    mean_b = mean(values_b)
+    total = 0.0
+    for index in range(len(values_a)):
+        total += (values_a[index] - mean_a) * (values_b[index] - mean_b)
+    return total / (len(values_a) - 1)
+
+
+def annualized_expected_returns(return_matrix: list[list[float]]) -> list[float]:
+    if not return_matrix:
+        return []
+    column_count = len(return_matrix[0])
+    return [
+        mean([row[column_index] for row in return_matrix]) * 252
+        for column_index in range(column_count)
+    ]
+
+
+def annualized_covariance_matrix(return_matrix: list[list[float]]) -> list[list[float]]:
+    if not return_matrix:
+        return []
+    column_count = len(return_matrix[0])
+    matrix: list[list[float]] = []
+    for row_index in range(column_count):
+        row: list[float] = []
+        series_a = [point[row_index] for point in return_matrix]
+        for column_index in range(column_count):
+            series_b = [point[column_index] for point in return_matrix]
+            row.append(sample_covariance(series_a, series_b) * 252)
+        matrix.append(row)
+    return matrix
+
+
+def portfolio_metrics_from_matrix(
+    weights: list[float],
+    expected_returns: list[float],
+    covariance_matrix: list[list[float]],
+    risk_free_rate: float,
+) -> dict[str, float]:
+    portfolio_return = sum(weight * expected_returns[index] for index, weight in enumerate(weights))
+    variance = 0.0
+    for row_index in range(len(weights)):
+        for column_index in range(len(weights)):
+            variance += weights[row_index] * weights[column_index] * covariance_matrix[row_index][column_index]
+    risk = math.sqrt(max(variance, 0.0))
+    sharpe = (portfolio_return - risk_free_rate) / risk if risk > 0 else 0.0
+    return {
+        "return": portfolio_return,
+        "risk": risk,
+        "sharpe": sharpe,
+    }
+
+
+def portfolio_daily_returns(return_matrix: list[list[float]], weights: list[float]) -> list[float]:
+    return [sum(row[index] * weights[index] for index in range(len(weights))) for row in return_matrix]
 
 
 def db_configured() -> bool:
@@ -1467,6 +1593,68 @@ def chart_batch(
 @app.get("/api/risk-free-rate")
 async def risk_free_rate() -> dict[str, Any]:
     return await fetch_risk_free_rate_payload()
+
+
+@app.post("/api/capm/analyze")
+async def capm_analyze(payload: CapmAnalyzeRequest) -> dict[str, Any]:
+    normalized_assets = normalize_capm_assets(payload.assets)
+    benchmark_ticker = payload.benchmark_ticker.strip().upper() or "SPY"
+    tickers = [asset["ticker"] for asset in normalized_assets]
+
+    if benchmark_ticker not in tickers:
+        requested_tickers = [*tickers, benchmark_ticker]
+    else:
+        requested_tickers = tickers
+
+    batch_payload = get_batch_chart_payload(requested_tickers, period="1y", interval="1d")
+    price_series_by_ticker = batch_payload.get("data", {})
+    unavailable = set(batch_payload.get("unavailable", []))
+    available_assets = [asset for asset in normalized_assets if asset["ticker"] in price_series_by_ticker]
+
+    if benchmark_ticker in unavailable or benchmark_ticker not in price_series_by_ticker:
+        raise HTTPException(status_code=502, detail=f"Benchmark price history is unavailable for {benchmark_ticker}.")
+
+    if not available_assets:
+        raise HTTPException(status_code=502, detail="No portfolio market data was returned for the requested tickers.")
+
+    asset_tickers = [asset["ticker"] for asset in available_assets]
+    return_matrix = build_capm_return_matrix(price_series_by_ticker, [*asset_tickers, benchmark_ticker])
+
+    if len(return_matrix) < 30:
+        raise HTTPException(
+            status_code=422,
+            detail="Need at least 30 overlapping daily observations to analyze CAPM reliably.",
+        )
+
+    risk_free_rate_payload = await fetch_risk_free_rate_payload()
+    risk_free_rate = float(risk_free_rate_payload["rate"])
+    weights = [asset["weight"] for asset in available_assets]
+    asset_expected_returns = annualized_expected_returns([row[:-1] for row in return_matrix])
+    asset_covariance_matrix = annualized_covariance_matrix([row[:-1] for row in return_matrix])
+    portfolio_metrics = portfolio_metrics_from_matrix(weights, asset_expected_returns, asset_covariance_matrix, risk_free_rate)
+    benchmark_series = [row[-1] for row in return_matrix]
+    portfolio_series = portfolio_daily_returns([row[:-1] for row in return_matrix], weights)
+
+    benchmark_return = mean(benchmark_series) * 252
+    benchmark_variance = sample_covariance(benchmark_series, benchmark_series)
+    beta = sample_covariance(portfolio_series, benchmark_series) / benchmark_variance if benchmark_variance > 0 else 0.0
+    capm_expected_return = risk_free_rate + beta * (benchmark_return - risk_free_rate)
+    alpha = portfolio_metrics["return"] - capm_expected_return
+
+    return {
+        "benchmark_ticker": benchmark_ticker,
+        "aligned_observations": len(return_matrix),
+        "portfolio_return": round(portfolio_metrics["return"], 6),
+        "portfolio_volatility": round(portfolio_metrics["risk"], 6),
+        "portfolio_sharpe": round(portfolio_metrics["sharpe"], 6),
+        "benchmark_return": round(benchmark_return, 6),
+        "beta": round(beta, 6),
+        "capm_expected_return": round(capm_expected_return, 6),
+        "alpha": round(alpha, 6),
+        "risk_free_rate": round(risk_free_rate, 6),
+        "risk_free_rate_info": risk_free_rate_payload,
+        "weights": {asset["ticker"]: round(asset["weight"], 4) for asset in available_assets},
+    }
 
 
 @app.post("/api/market-risk/refresh")

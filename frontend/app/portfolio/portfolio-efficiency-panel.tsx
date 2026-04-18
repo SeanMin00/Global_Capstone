@@ -15,8 +15,10 @@ import {
 import { analyzePortfolioCml, sanitizePortfolioAssets, type PortfolioAssetInput } from "./cml";
 import { DEFAULT_RISK_FREE_RATE } from "./cml-config";
 import {
+  fetchCapmAnalysis,
   fetchBatchHistoricalCloseSeries,
   fetchRiskFreeRate,
+  type CapmAnalyzeResponse,
   type HistoricalClosePoint,
   type RiskFreeRateResponse,
 } from "../stocks/stock-api";
@@ -58,6 +60,36 @@ function formatWeight(value: number) {
 function formatSharpe(value: number) {
   if (!Number.isFinite(value)) return "--";
   return value.toFixed(2);
+}
+
+function formatSignedPercent(value: number) {
+  const prefix = value > 0 ? "+" : "";
+  return `${prefix}${(value * 100).toFixed(1)}%`;
+}
+
+function formatSignedNumber(value: number, digits = 2) {
+  const prefix = value > 0 ? "+" : "";
+  return `${prefix}${value.toFixed(digits)}`;
+}
+
+function betaTone(value: number) {
+  if (value >= 1.15) return "Above-market sensitivity";
+  if (value <= 0.85) return "Below-market sensitivity";
+  return "Balanced with the market";
+}
+
+function capmInterpretation(payload: CapmAnalyzeResponse | null) {
+  if (!payload) return "Open CAPM analysis to compare your return outlook with the market-required return.";
+  if (payload.alpha >= 0.04) {
+    return "This portfolio is earning meaningfully more than the CAPM baseline, so it looks strong relative to its market beta.";
+  }
+  if (payload.alpha >= 0) {
+    return "This portfolio is slightly above the CAPM baseline, which suggests the current return outlook is holding up well for its beta.";
+  }
+  if (payload.alpha <= -0.04) {
+    return "This portfolio is trailing the CAPM baseline by a visible margin, so the return outlook may be weak for the market risk it takes.";
+  }
+  return "This portfolio is close to the CAPM baseline, so it is behaving roughly in line with its market sensitivity.";
 }
 
 function uniqueAssetTicker(inputs: PortfolioAssetInput[]) {
@@ -238,6 +270,10 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
   const [showCml, setShowCml] = useState(true);
   const [riskFreeRateInfo, setRiskFreeRateInfo] = useState<RiskFreeRateResponse | null>(null);
   const [riskFreeRateLoading, setRiskFreeRateLoading] = useState(false);
+  const [capmOpen, setCapmOpen] = useState(false);
+  const [capmLoading, setCapmLoading] = useState(false);
+  const [capmError, setCapmError] = useState("");
+  const [capmAnalysis, setCapmAnalysis] = useState<CapmAnalyzeResponse | null>(null);
 
   const normalizedAssets = useMemo(() => sanitizePortfolioAssets(portfolioAssets), [portfolioAssets]);
   const uniqueTickers = useMemo(() => uniqueAssetTicker(portfolioAssets), [portfolioAssets]);
@@ -339,6 +375,50 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
   const chartSummary = analysis.summary;
   const tangencyWeights = analysis.tangencyPortfolio?.weights ?? {};
 
+  useEffect(() => {
+    if (!capmOpen || normalizedAssets.assets.length === 0) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadCapm() {
+      try {
+        setCapmLoading(true);
+        setCapmError("");
+        const payload = await fetchCapmAnalysis({
+          assets: portfolioAssets.map((asset) => ({
+            ticker: asset.ticker,
+            weight: asset.weight,
+          })),
+          benchmark_ticker: "SPY",
+        });
+        if (!cancelled) {
+          setCapmAnalysis(payload);
+        }
+      } catch (fetchError) {
+        if (!cancelled) {
+          setCapmAnalysis(null);
+          setCapmError(
+            fetchError instanceof Error
+              ? fetchError.message
+              : "CAPM analysis could not be loaded right now.",
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setCapmLoading(false);
+        }
+      }
+    }
+
+    loadCapm();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [capmOpen, normalizedAssets.assets, portfolioAssets]);
+
   function updateAsset(index: number, next: Partial<PortfolioAssetInput>) {
     setPortfolioAssets((current) =>
       current.map((asset, assetIndex) =>
@@ -383,6 +463,9 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
         <div className="portfolio-header-chips">
           <span className="map-chip">1Y lookback</span>
           <span className="map-chip">Rf {formatPercent(activeRiskFreeRate)}</span>
+          <button type="button" className="portfolio-capm-trigger" onClick={() => setCapmOpen(true)}>
+            CAPM Analysis
+          </button>
         </div>
       </div>
 
@@ -714,6 +797,173 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
           <p>{chartSummary.interpretation}</p>
         </div>
       </section>
+
+      <div className={`portfolio-capm-shell ${capmOpen ? "open" : ""}`} aria-hidden={!capmOpen}>
+        <button
+          type="button"
+          className="portfolio-capm-backdrop"
+          aria-label="Close CAPM analysis"
+          onClick={() => setCapmOpen(false)}
+        />
+        <aside className="portfolio-capm-panel">
+          <div className="portfolio-capm-header">
+            <div>
+              <span className="eyebrow">CAPM analysis</span>
+              <h3>Market-risk based readout</h3>
+              <p>Compare your current portfolio return with the return implied by beta and the market benchmark.</p>
+            </div>
+            <button
+              type="button"
+              className="portfolio-capm-close"
+              aria-label="Close CAPM analysis"
+              onClick={() => setCapmOpen(false)}
+            >
+              ×
+            </button>
+          </div>
+
+          {capmLoading ? <div className="state-card">Loading CAPM analysis...</div> : null}
+          {capmError ? <div className="state-card error-card">{capmError}</div> : null}
+
+          {capmAnalysis ? (
+            <div className="portfolio-capm-body">
+              <section className="portfolio-capm-card portfolio-capm-hero">
+                <span className="eyebrow">Alpha gap (annual)</span>
+                <strong className={capmAnalysis.alpha >= 0 ? "positive" : "negative"}>
+                  {formatSignedPercent(capmAnalysis.alpha)}
+                </strong>
+                <p>{capmInterpretation(capmAnalysis)}</p>
+              </section>
+
+              <section className="portfolio-capm-card">
+                <span className="portfolio-capm-card-label">Return comparison</span>
+                <div className="portfolio-capm-bar-grid">
+                  <div className="portfolio-capm-bar-item">
+                    <span>Risk-free</span>
+                    <strong>{formatPercent(capmAnalysis.risk_free_rate)}</strong>
+                    <div className="portfolio-capm-bar-track">
+                      <div className="portfolio-capm-bar portfolio-capm-bar-riskfree" style={{ width: `${Math.min(capmAnalysis.risk_free_rate * 100, 100)}%` }} />
+                    </div>
+                  </div>
+                  <div className="portfolio-capm-bar-item">
+                    <span>CAPM required</span>
+                    <strong>{formatPercent(capmAnalysis.capm_expected_return)}</strong>
+                    <div className="portfolio-capm-bar-track">
+                      <div className="portfolio-capm-bar portfolio-capm-bar-capm" style={{ width: `${Math.min(capmAnalysis.capm_expected_return * 100, 100)}%` }} />
+                    </div>
+                  </div>
+                  <div className="portfolio-capm-bar-item">
+                    <span>Your portfolio</span>
+                    <strong>{formatPercent(capmAnalysis.portfolio_return)}</strong>
+                    <div className="portfolio-capm-bar-track">
+                      <div className="portfolio-capm-bar portfolio-capm-bar-user" style={{ width: `${Math.min(capmAnalysis.portfolio_return * 100, 100)}%` }} />
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section className="portfolio-capm-card">
+                <span className="portfolio-capm-card-label">Market sensitivity (beta)</span>
+                <div className="portfolio-capm-beta-row">
+                  <strong>{capmAnalysis.beta.toFixed(2)}</strong>
+                  <span className="portfolio-capm-badge">{betaTone(capmAnalysis.beta)}</span>
+                </div>
+                <div className="portfolio-capm-meter">
+                  <div className="portfolio-capm-meter-scale">
+                    <span>Low 0.5</span>
+                    <span>Market 1.0</span>
+                    <span>High 2.0</span>
+                  </div>
+                  <div className="portfolio-capm-meter-track">
+                    <div
+                      className="portfolio-capm-meter-thumb"
+                      style={{ left: `${Math.max(0, Math.min((capmAnalysis.beta / 2) * 100, 100))}%` }}
+                    />
+                  </div>
+                </div>
+                <p>
+                  When the market moves 10%, this portfolio is estimated to move about{" "}
+                  <strong>{formatSignedPercent(capmAnalysis.beta * 0.1)}</strong>.
+                </p>
+              </section>
+
+              <section className="portfolio-capm-card">
+                <span className="portfolio-capm-card-label">Key metric summary</span>
+                <div className="portfolio-capm-summary-rows">
+                  <div className="portfolio-capm-summary-row">
+                    <span>Expected return</span>
+                    <div className="portfolio-capm-summary-track"><div style={{ width: `${Math.min(capmAnalysis.portfolio_return * 100, 100)}%` }} /></div>
+                    <strong>{formatPercent(capmAnalysis.portfolio_return)}</strong>
+                  </div>
+                  <div className="portfolio-capm-summary-row">
+                    <span>CAPM required</span>
+                    <div className="portfolio-capm-summary-track"><div className="capm" style={{ width: `${Math.min(capmAnalysis.capm_expected_return * 100, 100)}%` }} /></div>
+                    <strong>{formatPercent(capmAnalysis.capm_expected_return)}</strong>
+                  </div>
+                  <div className="portfolio-capm-summary-row">
+                    <span>Alpha</span>
+                    <div className="portfolio-capm-summary-track"><div className={capmAnalysis.alpha >= 0 ? "positive" : "negative"} style={{ width: `${Math.min(Math.abs(capmAnalysis.alpha) * 400, 100)}%` }} /></div>
+                    <strong>{formatSignedPercent(capmAnalysis.alpha)}</strong>
+                  </div>
+                  <div className="portfolio-capm-summary-row">
+                    <span>Beta</span>
+                    <div className="portfolio-capm-summary-track"><div className="beta" style={{ width: `${Math.min((capmAnalysis.beta / 2) * 100, 100)}%` }} /></div>
+                    <strong>{capmAnalysis.beta.toFixed(2)}</strong>
+                  </div>
+                </div>
+              </section>
+
+              <section className="portfolio-capm-card">
+                <span className="portfolio-capm-card-label">As-is comparison</span>
+                <div className="portfolio-capm-table">
+                  <div className="portfolio-capm-table-row portfolio-capm-table-head">
+                    <span>Metric</span>
+                    <span>Your portfolio</span>
+                    <span>CAPM baseline</span>
+                  </div>
+                  <div className="portfolio-capm-table-row">
+                    <span>Return</span>
+                    <strong>{formatPercent(capmAnalysis.portfolio_return)}</strong>
+                    <strong>{formatPercent(capmAnalysis.capm_expected_return)}</strong>
+                  </div>
+                  <div className="portfolio-capm-table-row">
+                    <span>Volatility</span>
+                    <strong>{formatPercent(capmAnalysis.portfolio_volatility)}</strong>
+                    <strong>--</strong>
+                  </div>
+                  <div className="portfolio-capm-table-row">
+                    <span>Sharpe</span>
+                    <strong>{formatSharpe(capmAnalysis.portfolio_sharpe)}</strong>
+                    <strong>--</strong>
+                  </div>
+                  <div className="portfolio-capm-table-row">
+                    <span>Alpha</span>
+                    <strong className={capmAnalysis.alpha >= 0 ? "positive" : "negative"}>{formatSignedPercent(capmAnalysis.alpha)}</strong>
+                    <strong>0.0%</strong>
+                  </div>
+                  <div className="portfolio-capm-table-row">
+                    <span>Beta</span>
+                    <strong>{capmAnalysis.beta.toFixed(2)}</strong>
+                    <strong>1.00</strong>
+                  </div>
+                </div>
+              </section>
+
+              <section className="portfolio-capm-card">
+                <span className="portfolio-capm-card-label">Calculation formula</span>
+                <div className="portfolio-capm-formula">
+                  <code>CAPM = Rf + β × (Rm - Rf)</code>
+                  <code>
+                    = {formatPercent(capmAnalysis.risk_free_rate)} + {formatSignedNumber(capmAnalysis.beta, 2)} × (
+                    {formatPercent(capmAnalysis.benchmark_return)} - {formatPercent(capmAnalysis.risk_free_rate)})
+                  </code>
+                  <code>= {formatPercent(capmAnalysis.capm_expected_return)}</code>
+                </div>
+              </section>
+            </div>
+          ) : null}
+        </aside>
+      </div>
     </div>
   );
 }

@@ -49,6 +49,31 @@ export type RiskFreeRateResponse = {
   note: string;
 };
 
+export type CapmAnalyzeAsset = {
+  ticker: string;
+  weight: number;
+};
+
+export type CapmAnalyzeRequest = {
+  assets: CapmAnalyzeAsset[];
+  benchmark_ticker?: string;
+};
+
+export type CapmAnalyzeResponse = {
+  benchmark_ticker: string;
+  aligned_observations: number;
+  portfolio_return: number;
+  portfolio_volatility: number;
+  portfolio_sharpe: number;
+  benchmark_return: number;
+  beta: number;
+  capm_expected_return: number;
+  alpha: number;
+  risk_free_rate: number;
+  risk_free_rate_info: RiskFreeRateResponse;
+  weights: Record<string, number>;
+};
+
 function normalizeApiBaseUrl(value: string) {
   return value.replace(/\/+$/, "");
 }
@@ -138,4 +163,20 @@ export async function fetchRiskFreeRate(): Promise<RiskFreeRateResponse> {
   }
 
   return (await response.json()) as RiskFreeRateResponse;
+}
+
+export async function fetchCapmAnalysis(payload: CapmAnalyzeRequest): Promise<CapmAnalyzeResponse> {
+  const response = await fetch(buildApiUrl("/api/capm/analyze"), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseError(response, `CAPM request failed with ${response.status}`));
+  }
+
+  return (await response.json()) as CapmAnalyzeResponse;
 }
