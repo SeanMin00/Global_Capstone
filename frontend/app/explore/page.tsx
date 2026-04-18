@@ -853,6 +853,51 @@ function riskAversionLabel(score: number) {
   return "Growth-oriented";
 }
 
+function investorArchetypeLabel(goal: string, riskAversion: number) {
+  if (riskAversion >= 70) return "Defensive long-term investor";
+  if (goal === "balanced_growth") return "Balanced growth investor";
+  if (goal === "income_generation") return "Income-focused investor";
+  return "Long-term growth investor";
+}
+
+function investorArchetypeSummary(goal: string, horizon: string, riskAversion: number) {
+  if (riskAversion >= 70) {
+    return "A steadier strategy fits this profile. Diversification and downside control should come first.";
+  }
+  if (goal === "balanced_growth") {
+    return "This profile can take measured risk and still focus on long-term growth with balanced diversification.";
+  }
+  if (goal === "income_generation") {
+    return "This profile leans toward stability and repeatable cash flow over aggressive growth.";
+  }
+  if (horizon === "10_plus_years" || horizon === "5_10_years") {
+    return "A longer time horizon gives this profile room to take selective risk for growth.";
+  }
+  return "A moderate approach fits this profile while keeping enough flexibility for changing market conditions.";
+}
+
+function profileSignalWidth(value: number, max: number) {
+  return `${Math.max(10, Math.min(100, (value / max) * 100))}%`;
+}
+
+function profileLevelLabel(value: number) {
+  if (value >= 72) return "High";
+  if (value >= 48) return "Medium";
+  return "Low";
+}
+
+function suggestedPortfolioMix(riskAversion: number) {
+  if (riskAversion >= 70) return "Equities 40-55%, bonds 30-45%, cash 10-15%";
+  if (riskAversion >= 40) return "Equities 60-70%, bonds 20-30%, cash 5-10%";
+  return "Equities 75-85%, bonds 10-20%, cash 5-10%";
+}
+
+function rebalanceCadence(riskAversion: number, cashFlow: string) {
+  if (cashFlow === "low") return "Monthly check-in with quarterly rebalance";
+  if (riskAversion >= 70) return "Quarterly rebalance with tight risk review";
+  return "Quarterly rebalance fits this profile";
+}
+
 function scaleBubbleSize(value: number, minValue: number, maxValue: number, minSize: number, maxSize: number) {
   if (value <= 0) {
     return minSize;
@@ -1539,6 +1584,29 @@ export default function ExplorePage() {
       setViewMode("pf");
     }
   }, []);
+  const profileTitle = investorArchetypeLabel(
+    profilePreferences.investmentGoal,
+    profilePreferences.riskAversion,
+  );
+  const profileSummary = investorArchetypeSummary(
+    profilePreferences.investmentGoal,
+    profilePreferences.investmentHorizon,
+    profilePreferences.riskAversion,
+  );
+  const expectedReturnSignal = Math.round(
+    52 + (100 - profilePreferences.riskAversion) * 0.35,
+  );
+  const volatilitySignal = Math.round(
+    38 + profilePreferences.lossTolerance * 0.9,
+  );
+  const diversificationSignal = Math.round(
+    48 + profilePreferences.riskAversion * 0.45,
+  );
+  const suggestedMix = suggestedPortfolioMix(profilePreferences.riskAversion);
+  const rebalanceLabel = rebalanceCadence(
+    profilePreferences.riskAversion,
+    profilePreferences.monthlyCashFlowStability,
+  );
 
   return (
     <TourProvider steps={tourSteps} onStepChange={handleTourStepChange}>
@@ -2402,71 +2470,74 @@ export default function ExplorePage() {
               ) : viewMode === "pf" ? (
                 <PortfolioEfficiencyPanel profilePreferences={profilePreferences} />
               ) : (
-                <div className="explore-grid">
-                  <section className="map-panel">
-                    <div className="map-header">
-                      <div>
-                        <p className="eyebrow">Personal view</p>
-                        <h2>Profile onboarding</h2>
-                      </div>
-                      <div className="map-chip">Coming soon</div>
+                <div className="profile-workspace">
+                  <div className="profile-stepper">
+                    <div className={`profile-step-item ${profileStep === "login" ? "active" : "completed"}`}>
+                      <span className="profile-step-badge">1</span>
+                      <strong>Basic info</strong>
                     </div>
+                    <div className={`profile-step-line ${profileStep === "preferences" ? "active" : ""}`} />
+                    <div className={`profile-step-item ${profileStep === "preferences" ? "active" : ""}`}>
+                      <span className="profile-step-badge">2</span>
+                      <strong>Investor setup</strong>
+                    </div>
+                    <div className="profile-step-line" />
+                    <div className="profile-step-item">
+                      <span className="profile-step-badge">3</span>
+                      <strong>Complete</strong>
+                    </div>
+                  </div>
 
-                    {profileStep === "login" ? (
-                      <div className="profile-card">
-                        <div className="profile-card-header">
-                          <p className="eyebrow">Step 1</p>
-                          <h3>Enter a basic profile</h3>
-                          <p>
-                            This is frontend-only for now. Fill in anything minimal, then move to preference setup.
-                          </p>
+                  <div className="profile-workspace-grid">
+                    <section className="profile-main-panel">
+                      {profileStep === "login" ? (
+                        <div className="profile-card">
+                          <div className="profile-card-header">
+                            <p className="eyebrow">Step 1</p>
+                            <h3>Enter a basic profile</h3>
+                            <p>
+                              This is frontend-only for now. Fill in anything minimal, then move to preference setup.
+                            </p>
+                          </div>
+
+                          <div className="profile-form-grid">
+                            <label className="profile-field">
+                              <span>Name</span>
+                              <input
+                                value={profileForm.name}
+                                onChange={(event) =>
+                                  setProfileForm((current) => ({ ...current, name: event.target.value }))
+                                }
+                                placeholder="Sean"
+                              />
+                            </label>
+
+                            <label className="profile-field">
+                              <span>Email</span>
+                              <input
+                                value={profileForm.email}
+                                onChange={(event) =>
+                                  setProfileForm((current) => ({ ...current, email: event.target.value }))
+                                }
+                                placeholder="sean@example.com"
+                              />
+                            </label>
+                          </div>
+
+                          <div className="profile-actions">
+                            <button
+                              type="button"
+                              className="profile-primary-button"
+                              disabled={!canContinueProfile}
+                              onClick={() => setProfileStep("preferences")}
+                            >
+                              Continue to Preferences
+                            </button>
+                          </div>
                         </div>
-
-                        <div className="profile-form-grid">
-                          <label className="profile-field">
-                            <span>Name</span>
-                            <input
-                              value={profileForm.name}
-                              onChange={(event) =>
-                                setProfileForm((current) => ({ ...current, name: event.target.value }))
-                              }
-                              placeholder="Sean"
-                            />
-                          </label>
-
-                          <label className="profile-field">
-                            <span>Email</span>
-                            <input
-                              value={profileForm.email}
-                              onChange={(event) =>
-                                setProfileForm((current) => ({ ...current, email: event.target.value }))
-                              }
-                              placeholder="sean@example.com"
-                            />
-                          </label>
-                        </div>
-
-                        <div className="profile-actions">
-                          <button
-                            type="button"
-                            className="profile-primary-button"
-                            disabled={!canContinueProfile}
-                            onClick={() => setProfileStep("preferences")}
-                          >
-                            Continue to Preferences
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="profile-card">
-                        <div className="profile-card-header">
-                          <p className="eyebrow">Step 2</p>
-                          <h3>Investor preferences</h3>
-                          <p>Adjust a few core settings. We can wire this to real persistence later.</p>
-                        </div>
-
+                      ) : (
                         <div className="profile-preferences-layout">
-                          <section className="profile-input-section">
+                          <section className="profile-input-section profile-section-lg">
                             <div className="profile-input-section-header">
                               <strong>Strategy</strong>
                               <span>Define what this portfolio is trying to do over time.</span>
@@ -2510,7 +2581,7 @@ export default function ExplorePage() {
                             </div>
                           </section>
 
-                          <section className="profile-input-section">
+                          <section className="profile-input-section profile-section-lg">
                             <div className="profile-input-section-header">
                               <strong>Risk profile</strong>
                               <span>Set how cautious this investor should be under volatility and drawdowns.</span>
@@ -2541,9 +2612,11 @@ export default function ExplorePage() {
                                   />
                                   <strong>{profilePreferences.riskAversion}</strong>
                                 </div>
-                                <p className="profile-helper-copy">
-                                  {riskAversionLabel(profilePreferences.riskAversion)}
-                                </p>
+                                <div className="profile-slider-scale">
+                                  <span>Growth</span>
+                                  <span>Balanced</span>
+                                  <span>Defensive</span>
+                                </div>
                               </label>
 
                               <label className="profile-field">
@@ -2571,14 +2644,16 @@ export default function ExplorePage() {
                                   />
                                   <strong>{profilePreferences.lossTolerance}%</strong>
                                 </div>
-                                <p className="profile-helper-copy">
-                                  {lossToleranceLabel(profilePreferences.lossTolerance)}
-                                </p>
+                                <div className="profile-slider-scale">
+                                  <span>5%</span>
+                                  <span>{lossToleranceLabel(profilePreferences.lossTolerance)}</span>
+                                  <span>50%</span>
+                                </div>
                               </label>
                             </div>
                           </section>
 
-                          <section className="profile-input-section">
+                          <section className="profile-input-section profile-section-lg">
                             <div className="profile-input-section-header">
                               <strong>Personal context</strong>
                               <span>Capture how stable the investor's situation is month to month.</span>
@@ -2621,110 +2696,116 @@ export default function ExplorePage() {
                             </div>
                           </section>
                         </div>
+                      )}
+                    </section>
 
-                        <div className="profile-actions">
-                          <button
-                            type="button"
-                            className="map-back-button"
-                            onClick={() => setProfileStep("login")}
-                          >
-                            Back
-                          </button>
-                          <button type="button" className="profile-primary-button">
-                            Save Later
-                          </button>
+                    <aside className="profile-summary-panel">
+                      <div className="profile-report-card">
+                        <div className="profile-preview-pill">
+                          {humanizeProfileValue(profilePreferences.investmentGoal)}
                         </div>
-                      </div>
-                    )}
-                  </section>
+                        <div className="profile-report-header">
+                          <h3>{profileTitle}</h3>
+                          <p>{profileSummary}</p>
+                        </div>
 
-                  <aside className="news-panel">
-                    <div className="profile-preview-card">
-                      <div className="profile-preview-header">
-                        <p className="eyebrow">Profile Preview</p>
-                        <h3>{profileForm.name || "New user"}</h3>
-                        <p>{profileForm.email || "No email entered yet"}</p>
-                      </div>
+                        <div className="profile-report-signals">
+                          <div className="profile-signal-row">
+                            <span>Expected return</span>
+                            <div className="profile-signal-bar">
+                              <div
+                                className="profile-signal-fill signal-blue"
+                                style={{ width: profileSignalWidth(expectedReturnSignal, 100) }}
+                              />
+                            </div>
+                            <strong>{profileLevelLabel(expectedReturnSignal)}</strong>
+                          </div>
+                          <div className="profile-signal-row">
+                            <span>Drawdown tolerance</span>
+                            <div className="profile-signal-bar">
+                              <div
+                                className="profile-signal-fill signal-orange"
+                                style={{ width: profileSignalWidth(volatilitySignal, 100) }}
+                              />
+                            </div>
+                            <strong>{profileLevelLabel(volatilitySignal)}</strong>
+                          </div>
+                          <div className="profile-signal-row">
+                            <span>Diversification need</span>
+                            <div className="profile-signal-bar">
+                              <div
+                                className="profile-signal-fill signal-green"
+                                style={{ width: profileSignalWidth(diversificationSignal, 100) }}
+                              />
+                            </div>
+                            <strong>{profileLevelLabel(diversificationSignal)}</strong>
+                          </div>
+                        </div>
 
-                      <div className="profile-preview-hero">
-                        <div className="profile-preview-hero-top">
-                          <div className="profile-preview-pill">Inputs ready</div>
-                          <div className="profile-preview-score">
-                            <span>Profile fit</span>
-                            <strong>{riskAversionLabel(profilePreferences.riskAversion)}</strong>
+                        <div className="profile-report-block">
+                          <div className="profile-report-dot blue" />
+                          <div>
+                            <strong>Suggested allocation</strong>
+                            <p>{suggestedMix} can fit this profile.</p>
                           </div>
                         </div>
-                        <div className="profile-preview-hero-grid">
-                          <div className="profile-mini-card">
-                            <span>Risk posture</span>
-                            <strong>{riskPostureLabel(profilePreferences.riskAversion)}</strong>
-                          </div>
-                          <div className="profile-mini-card">
-                            <span>Horizon</span>
-                            <strong>{humanizeProfileValue(profilePreferences.investmentHorizon)}</strong>
-                          </div>
-                          <div className="profile-mini-card">
-                            <span>Cash flow</span>
-                            <strong>{humanizeProfileValue(profilePreferences.monthlyCashFlowStability)}</strong>
-                          </div>
-                        </div>
-                      </div>
 
-                      <div className="profile-preview-section">
-                        <div className="profile-section-header">
-                          <strong>Investor setup</strong>
-                          <span>Core identity and objective</span>
-                        </div>
-                        <div className="profile-summary-list">
-                          <div className="profile-summary-row">
-                            <span>Goal</span>
-                            <strong>{humanizeProfileValue(profilePreferences.investmentGoal)}</strong>
-                          </div>
-                          <div className="profile-summary-row">
-                            <span>Occupation</span>
-                            <strong>{humanizeProfileValue(profilePreferences.occupation)}</strong>
-                          </div>
-                          <div className="profile-summary-row">
-                            <span>Cash flow stability</span>
-                            <strong>
-                              {humanizeProfileValue(profilePreferences.monthlyCashFlowStability)}
-                            </strong>
+                        <div className="profile-report-block">
+                          <div className="profile-report-dot orange" />
+                          <div>
+                            <strong>Loss scenario</strong>
+                            <p>
+                              A temporary drawdown of {profilePreferences.lossTolerance}% is within the selected comfort range.
+                            </p>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="profile-preview-section">
-                        <div className="profile-section-header">
-                          <strong>Risk settings</strong>
-                          <span>How conservative or aggressive this investor may be</span>
-                        </div>
-                        <div className="profile-summary-list">
-                          <div className="profile-summary-row">
-                            <span>Risk aversion</span>
-                            <strong>{profilePreferences.riskAversion}</strong>
-                          </div>
-                          <div className="profile-summary-row">
-                            <span>Loss tolerance</span>
-                            <strong>{profilePreferences.lossTolerance}%</strong>
-                          </div>
-                          <div className="profile-summary-row">
-                            <span>Interpretation</span>
-                            <strong>{lossToleranceLabel(profilePreferences.lossTolerance)}</strong>
+                        <div className="profile-report-block">
+                          <div className="profile-report-dot green" />
+                          <div>
+                            <strong>Rebalancing rhythm</strong>
+                            <p>{rebalanceLabel}.</p>
                           </div>
                         </div>
                       </div>
+                    </aside>
+                  </div>
 
-                      <div className="profile-insight-card">
-                        <span className="profile-insight-label">Interpretation</span>
-                        <strong>{riskPostureLabel(profilePreferences.riskAversion)}</strong>
-                        <p>
-                          {lossToleranceLabel(profilePreferences.lossTolerance)} with{" "}
-                          {humanizeProfileValue(profilePreferences.monthlyCashFlowStability)} monthly cash flow
-                          stability.
-                        </p>
+                  {profileStep === "preferences" ? (
+                    <div className="profile-footer-bar">
+                      <div className="profile-footer-metrics">
+                        <div className="profile-footer-card">
+                          <span>Goal</span>
+                          <strong>{humanizeProfileValue(profilePreferences.investmentGoal)}</strong>
+                        </div>
+                        <div className="profile-footer-card">
+                          <span>Horizon</span>
+                          <strong>{humanizeProfileValue(profilePreferences.investmentHorizon)}</strong>
+                        </div>
+                        <div className="profile-footer-card">
+                          <span>Risk aversion</span>
+                          <strong>{profilePreferences.riskAversion}</strong>
+                        </div>
+                        <div className="profile-footer-card">
+                          <span>Loss limit</span>
+                          <strong>{profilePreferences.lossTolerance}%</strong>
+                        </div>
+                      </div>
+
+                      <div className="profile-footer-actions">
+                        <button
+                          type="button"
+                          className="map-back-button"
+                          onClick={() => setProfileStep("login")}
+                        >
+                          Back
+                        </button>
+                        <button type="button" className="profile-primary-button">
+                          Save Later
+                        </button>
                       </div>
                     </div>
-                  </aside>
+                  ) : null}
                 </div>
               )}
             </>
