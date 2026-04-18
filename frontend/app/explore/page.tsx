@@ -1737,13 +1737,19 @@ export default function ExplorePage() {
                             <div className="risk-breakdown-grid">
                               <div className="risk-breakdown-item">
                                 <span>Volatility</span>
+                                <label>Score</label>
                                 <strong>{displayedMarketRisk.component_scores.volatility.toFixed(1)}</strong>
-                                <small>{formatPercent(displayedMarketRisk.raw_metrics.realized_vol_30d)}</small>
+                                <small>
+                                  <span>Raw</span>
+                                  {formatPercent(displayedMarketRisk.raw_metrics.realized_vol_30d)}
+                                </small>
                               </div>
                               <div className="risk-breakdown-item">
                                 <span>Beta</span>
+                                <label>Score</label>
                                 <strong>{displayedMarketRisk.component_scores.beta.toFixed(1)}</strong>
                                 <small>
+                                  <span>Raw</span>
                                   {displayedMarketRisk.raw_metrics.beta_60d !== null
                                     ? displayedMarketRisk.raw_metrics.beta_60d.toFixed(2)
                                     : "--"}
@@ -1751,8 +1757,12 @@ export default function ExplorePage() {
                               </div>
                               <div className="risk-breakdown-item">
                                 <span>FX Risk</span>
+                                <label>Score</label>
                                 <strong>{displayedMarketRisk.component_scores.fx_risk.toFixed(1)}</strong>
-                                <small>{formatPercent(displayedMarketRisk.raw_metrics.fx_vol_30d)}</small>
+                                <small>
+                                  <span>Raw</span>
+                                  {formatPercent(displayedMarketRisk.raw_metrics.fx_vol_30d)}
+                                </small>
                               </div>
                             </div>
                           ) : null}

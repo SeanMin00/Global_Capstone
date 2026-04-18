@@ -2586,14 +2586,35 @@ select {
   color: var(--muted);
 }
 
-.risk-breakdown-item strong {
+.risk-breakdown-item > label {
   display: block;
   margin-top: 8px;
+  color: rgba(148, 163, 184, 0.82);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.risk-breakdown-item strong {
+  display: block;
+  margin-top: 4px;
   font-size: 1.1rem;
 }
 
 .risk-breakdown-item small {
   margin-top: 6px;
+  font-size: 0.82rem;
+}
+
+.risk-breakdown-item small span {
+  display: inline;
+  margin-right: 6px;
+  color: rgba(148, 163, 184, 0.82);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .news-feed-panel {
