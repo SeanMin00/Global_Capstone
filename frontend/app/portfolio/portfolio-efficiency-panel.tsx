@@ -88,6 +88,10 @@ function formatSignedNumber(value: number, digits = 2) {
   return `${prefix}${value.toFixed(digits)}`;
 }
 
+function formatPercent1(value: number) {
+  return `${(value * 100).toFixed(1)}%`;
+}
+
 function betaTone(value: number) {
   if (value >= 1.15) return "Above-market sensitivity";
   if (value <= 0.85) return "Below-market sensitivity";
@@ -376,6 +380,8 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
   const [capmLoading, setCapmLoading] = useState(false);
   const [capmError, setCapmError] = useState("");
   const [capmAnalysis, setCapmAnalysis] = useState<CapmAnalyzeResponse | null>(null);
+  const [simulatedReturn, setSimulatedReturn] = useState(0);
+  const [simulatedBeta, setSimulatedBeta] = useState(1);
 
   const normalizedAssets = useMemo(() => sanitizePortfolioAssets(portfolioAssets), [portfolioAssets]);
   const uniqueTickers = useMemo(() => uniqueAssetTicker(portfolioAssets), [portfolioAssets]);
@@ -478,6 +484,12 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
   const tangencyWeights = analysis.tangencyPortfolio?.weights ?? {};
 
   useEffect(() => {
+    if (!capmAnalysis) return;
+    setSimulatedReturn(capmAnalysis.portfolio_return);
+    setSimulatedBeta(capmAnalysis.beta);
+  }, [capmAnalysis]);
+
+  useEffect(() => {
     if (!capmOpen || normalizedAssets.assets.length === 0) {
       return;
     }
@@ -562,6 +574,23 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
   function removeTicker(index: number) {
     setPortfolioAssets((current) => current.filter((_, assetIndex) => assetIndex !== index));
   }
+
+  const capmReturnBars = capmAnalysis
+    ? [
+        { label: "Risk-free", value: capmAnalysis.risk_free_rate, tone: "riskfree" },
+        { label: "Market", value: capmAnalysis.benchmark_return, tone: "market" },
+        { label: "CAPM required", value: capmAnalysis.capm_expected_return, tone: "capm" },
+        { label: "Your portfolio", value: capmAnalysis.portfolio_return, tone: "user" },
+      ]
+    : [];
+  const capmReturnBarMax = capmReturnBars.length ? Math.max(...capmReturnBars.map((item) => item.value), 0.01) : 0.01;
+  const simulationCapmReturn = capmAnalysis
+    ? capmAnalysis.risk_free_rate + simulatedBeta * (capmAnalysis.benchmark_return - capmAnalysis.risk_free_rate)
+    : 0;
+  const simulationAlpha = simulatedReturn - simulationCapmReturn;
+  const returnSliderMax = capmAnalysis
+    ? Math.max(capmAnalysis.portfolio_return, capmAnalysis.capm_expected_return, capmAnalysis.benchmark_return, 0.45)
+    : 0.45;
 
   return (
     <div className="portfolio-builder-shell">
@@ -950,29 +979,23 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
 
               <section className="portfolio-capm-card">
                 <span className="portfolio-capm-card-label">Return comparison</span>
-                <div className="portfolio-capm-bar-grid">
-                  <div className="portfolio-capm-bar-item">
-                    <span>Risk-free</span>
-                    <strong>{formatPercent(capmAnalysis.risk_free_rate)}</strong>
-                    <div className="portfolio-capm-bar-track">
-                      <div className="portfolio-capm-bar portfolio-capm-bar-riskfree" style={{ width: `${Math.min(capmAnalysis.risk_free_rate * 100, 100)}%` }} />
+                <div className="portfolio-capm-column-chart">
+                  {capmReturnBars.map((bar) => (
+                    <div key={bar.label} className="portfolio-capm-column-item">
+                      <strong className={`portfolio-capm-column-value ${bar.tone}`}>{formatPercent1(bar.value)}</strong>
+                      <div className="portfolio-capm-column-track">
+                        <div
+                          className={`portfolio-capm-column-bar ${bar.tone}`}
+                          style={{ height: `${Math.max((bar.value / capmReturnBarMax) * 100, 8)}%` }}
+                        />
+                      </div>
+                      <span className="portfolio-capm-column-label">{bar.label}</span>
                     </div>
-                  </div>
-                  <div className="portfolio-capm-bar-item">
-                    <span>CAPM required</span>
-                    <strong>{formatPercent(capmAnalysis.capm_expected_return)}</strong>
-                    <div className="portfolio-capm-bar-track">
-                      <div className="portfolio-capm-bar portfolio-capm-bar-capm" style={{ width: `${Math.min(capmAnalysis.capm_expected_return * 100, 100)}%` }} />
-                    </div>
-                  </div>
-                  <div className="portfolio-capm-bar-item">
-                    <span>Your portfolio</span>
-                    <strong>{formatPercent(capmAnalysis.portfolio_return)}</strong>
-                    <div className="portfolio-capm-bar-track">
-                      <div className="portfolio-capm-bar portfolio-capm-bar-user" style={{ width: `${Math.min(capmAnalysis.portfolio_return * 100, 100)}%` }} />
-                    </div>
-                  </div>
+                  ))}
                 </div>
+                <small className="portfolio-capm-footnote">
+                  CAPM = Rf + β × (Rm - Rf)
+                </small>
               </section>
 
               <section className="portfolio-capm-card">
@@ -996,7 +1019,10 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
                 </div>
                 <p>
                   When the market moves 10%, this portfolio is estimated to move about{" "}
-                  <strong>{formatSignedPercent(capmAnalysis.beta * 0.1)}</strong>.
+                  <strong className="portfolio-capm-inline-positive">{formatSignedPercent(capmAnalysis.beta * 0.1)}</strong>{" "}
+                  on the upside, and about{" "}
+                  <strong className="portfolio-capm-inline-negative">-{(capmAnalysis.beta * 10).toFixed(1)}%</strong>{" "}
+                  on the downside.
                 </p>
               </section>
 
@@ -1064,13 +1090,56 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
 
               <section className="portfolio-capm-card">
                 <span className="portfolio-capm-card-label">Calculation formula</span>
-                <div className="portfolio-capm-formula">
-                  <code>CAPM = Rf + β × (Rm - Rf)</code>
-                  <code>
-                    = {formatPercent(capmAnalysis.risk_free_rate)} + {formatSignedNumber(capmAnalysis.beta, 2)} × (
-                    {formatPercent(capmAnalysis.benchmark_return)} - {formatPercent(capmAnalysis.risk_free_rate)})
-                  </code>
-                  <code>= {formatPercent(capmAnalysis.capm_expected_return)}</code>
+                <div className="portfolio-capm-formula-shell">
+                  <div className="portfolio-capm-formula-block">
+                    <code>CAPM = Rf + β × (Rm - Rf)</code>
+                    <code>
+                      = {formatPercent1(capmAnalysis.risk_free_rate)} + {formatSignedNumber(simulatedBeta, 2)} × (
+                      {formatPercent1(capmAnalysis.benchmark_return)} - {formatPercent1(capmAnalysis.risk_free_rate)})
+                    </code>
+                    <code>= {formatPercent1(simulationCapmReturn)}</code>
+                  </div>
+                  <div className="portfolio-capm-formula-alpha">
+                    <span>Alpha = Actual return - CAPM expected return</span>
+                    <strong className={simulationAlpha >= 0 ? "positive" : "negative"}>
+                      {formatPercent1(simulatedReturn)} - {formatPercent1(simulationCapmReturn)} = {formatSignedPercent(simulationAlpha)}
+                    </strong>
+                  </div>
+                </div>
+              </section>
+
+              <section className="portfolio-capm-card">
+                <span className="portfolio-capm-card-label">Simulation</span>
+                <p>Move the inputs to see how the CAPM baseline and alpha change.</p>
+                <div className="portfolio-capm-simulation">
+                  <div className="portfolio-capm-sim-row">
+                    <div className="portfolio-capm-sim-header">
+                      <span>Actual return</span>
+                      <strong>{formatPercent1(simulatedReturn)}</strong>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={returnSliderMax}
+                      step={0.001}
+                      value={simulatedReturn}
+                      onChange={(event) => setSimulatedReturn(Number(event.target.value))}
+                    />
+                  </div>
+                  <div className="portfolio-capm-sim-row">
+                    <div className="portfolio-capm-sim-header">
+                      <span>Portfolio beta</span>
+                      <strong>{simulatedBeta.toFixed(2)}</strong>
+                    </div>
+                    <input
+                      type="range"
+                      min={0.3}
+                      max={2}
+                      step={0.01}
+                      value={simulatedBeta}
+                      onChange={(event) => setSimulatedBeta(Number(event.target.value))}
+                    />
+                  </div>
                 </div>
               </section>
             </div>

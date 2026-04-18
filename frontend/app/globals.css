@@ -2702,7 +2702,7 @@ select {
   top: 16px;
   right: 16px;
   bottom: 16px;
-  width: min(430px, calc(100vw - 32px));
+  width: min(516px, calc(100vw - 32px));
   display: grid;
   grid-template-rows: auto 1fr;
   gap: 14px;
@@ -2808,61 +2808,46 @@ select {
   line-height: 1.65;
 }
 
-.portfolio-capm-bar-grid,
 .portfolio-capm-summary-rows {
   display: grid;
   gap: 12px;
 }
 
-.portfolio-capm-bar-item,
 .portfolio-capm-summary-row {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: 120px minmax(0, 1fr) 72px;
   align-items: center;
   gap: 10px;
 }
 
-.portfolio-capm-bar-item span,
 .portfolio-capm-summary-row span {
   color: var(--muted);
   font-size: 0.9rem;
 }
 
-.portfolio-capm-bar-item strong,
 .portfolio-capm-summary-row strong {
   color: #f8fafc;
   font-size: 1rem;
+  text-align: right;
 }
 
-.portfolio-capm-bar-track,
 .portfolio-capm-summary-track {
   position: relative;
-  height: 12px;
+  height: 10px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.06);
   overflow: hidden;
 }
 
-.portfolio-capm-summary-track {
-  height: 8px;
-}
-
-.portfolio-capm-bar,
 .portfolio-capm-summary-track > div {
   height: 100%;
   border-radius: inherit;
 }
 
-.portfolio-capm-bar-riskfree {
-  background: linear-gradient(90deg, #8aa0bf, #dbeafe);
-}
-
-.portfolio-capm-bar-capm,
 .portfolio-capm-summary-track > .capm {
   background: linear-gradient(90deg, #3b82f6, #60a5fa);
 }
 
-.portfolio-capm-bar-user,
 .portfolio-capm-summary-track > .positive {
   background: linear-gradient(90deg, #34d399, #7dd3fc);
 }
@@ -2896,6 +2881,89 @@ select {
   padding: 8px 12px;
   font-size: 0.82rem;
   font-weight: 700;
+}
+
+.portfolio-capm-column-chart {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  align-items: end;
+  min-height: 168px;
+}
+
+.portfolio-capm-column-item {
+  display: grid;
+  gap: 8px;
+  align-items: end;
+}
+
+.portfolio-capm-column-value {
+  font-size: 0.96rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.portfolio-capm-column-value.riskfree {
+  color: #dbeafe;
+}
+
+.portfolio-capm-column-value.market {
+  color: #cbd5e1;
+}
+
+.portfolio-capm-column-value.capm {
+  color: #93c5fd;
+}
+
+.portfolio-capm-column-value.user {
+  color: #4ade80;
+}
+
+.portfolio-capm-column-track {
+  position: relative;
+  height: 92px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 0 8px;
+}
+
+.portfolio-capm-column-bar {
+  width: 100%;
+  min-height: 10px;
+  border-radius: 4px 4px 0 0;
+}
+
+.portfolio-capm-column-bar.riskfree {
+  background: linear-gradient(180deg, rgba(219, 234, 254, 0.55), rgba(148, 163, 184, 0.85));
+}
+
+.portfolio-capm-column-bar.market {
+  background: linear-gradient(180deg, rgba(148, 163, 184, 0.55), rgba(100, 116, 139, 0.92));
+}
+
+.portfolio-capm-column-bar.capm {
+  background: linear-gradient(180deg, rgba(96, 165, 250, 0.55), rgba(59, 130, 246, 0.92));
+}
+
+.portfolio-capm-column-bar.user {
+  background: linear-gradient(180deg, rgba(74, 222, 128, 0.55), rgba(34, 197, 94, 0.92));
+}
+
+.portfolio-capm-column-label {
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.portfolio-capm-footnote {
+  display: block;
+  color: var(--muted);
+  font-size: 0.78rem;
 }
 
 .portfolio-capm-meter {
@@ -2957,19 +3025,84 @@ select {
   letter-spacing: 0.12em;
 }
 
-.portfolio-capm-formula {
+.portfolio-capm-formula-shell {
   display: grid;
-  gap: 8px;
+  gap: 12px;
 }
 
-.portfolio-capm-formula code {
+.portfolio-capm-formula-block {
+  display: grid;
+  gap: 8px;
+  border: 1px solid rgba(182, 212, 255, 0.14);
+  border-radius: 16px;
+  background: rgba(8, 12, 20, 0.88);
+  padding: 14px;
+}
+
+.portfolio-capm-formula-block code {
   display: block;
-  border: 1px solid rgba(182, 212, 255, 0.16);
-  border-radius: 14px;
-  background: rgba(182, 212, 255, 0.06);
-  color: #efffb8;
-  padding: 10px 12px;
-  font-size: 0.94rem;
+  color: #dbeafe;
+  font-size: 0.96rem;
+}
+
+.portfolio-capm-formula-alpha {
+  display: grid;
+  gap: 6px;
+}
+
+.portfolio-capm-formula-alpha span {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.portfolio-capm-formula-alpha strong {
+  font-size: 1.02rem;
+}
+
+.portfolio-capm-formula-alpha strong.positive {
+  color: #4ade80;
+}
+
+.portfolio-capm-formula-alpha strong.negative {
+  color: #fb7185;
+}
+
+.portfolio-capm-simulation {
+  display: grid;
+  gap: 16px;
+}
+
+.portfolio-capm-sim-row {
+  display: grid;
+  gap: 10px;
+}
+
+.portfolio-capm-sim-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.portfolio-capm-sim-header span {
+  color: var(--muted);
+}
+
+.portfolio-capm-sim-header strong {
+  color: #f8fafc;
+}
+
+.portfolio-capm-sim-row input[type="range"] {
+  width: 100%;
+  accent-color: #4ade80;
+}
+
+.portfolio-capm-inline-positive {
+  color: #4ade80;
+}
+
+.portfolio-capm-inline-negative {
+  color: #fb7185;
 }
 
 .sector-rail {
@@ -3550,7 +3683,7 @@ select {
   }
 
   .portfolio-capm-panel {
-    width: min(520px, calc(100vw - 24px));
+    width: min(580px, calc(100vw - 24px));
     right: 12px;
     top: 12px;
     bottom: 12px;
@@ -3647,10 +3780,13 @@ select {
     font-size: 2.5rem;
   }
 
-  .portfolio-capm-bar-item,
   .portfolio-capm-summary-row,
   .portfolio-capm-table-row {
     grid-template-columns: 1fr;
+  }
+
+  .portfolio-capm-column-chart {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .portfolio-asset-row,
