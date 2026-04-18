@@ -1568,6 +1568,19 @@ export default function ExplorePage() {
       return;
     }
 
+    if (step.page === "/explorer-heatmap") {
+      setViewMode("explorer");
+      setChartMode("heatmap");
+      return;
+    }
+
+    if (step.page === "/explorer-structure") {
+      setViewMode("explorer");
+      setChartMode("structure");
+      setStructureViewMode("country");
+      return;
+    }
+
     if (step.page === "/explorer") {
       setViewMode("explorer");
       setChartMode("structure");
@@ -1654,7 +1667,7 @@ export default function ExplorePage() {
         </aside>
 
         <div className="explore-main">
-          <header className="hero">
+          <header className="hero" data-tour={viewMode === "map" ? "landing-overview" : undefined}>
             <div className="hero-copy-block">
               <h1>{viewModeLabel(viewMode)}</h1>
               <p className="hero-copy">{viewModeCopy(viewMode)}</p>
@@ -1758,7 +1771,7 @@ export default function ExplorePage() {
                       </div>
                     ) : null}
 
-                    <div className="map-stage">
+                    <div className="map-stage" data-tour="map-world-stage">
                       <div className="map-scanline" />
                       <div className="map-grid-overlay" />
                       <SentimentWorldMap
@@ -1835,7 +1848,10 @@ export default function ExplorePage() {
                           </div>
                         </div>
 
-                        <div className="risk-summary-card">
+                        <div
+                          className="risk-summary-card"
+                          data-tour={viewMode === "map" ? "map-risk-card" : undefined}
+                        >
                           <div className="risk-summary-header">
                             <strong>Market Risk</strong>
                             <span className={`risk-level-pill risk-${displayedMarketRisk?.risk_level ?? "none"}`}>
@@ -1910,7 +1926,10 @@ export default function ExplorePage() {
                           ) : null}
                         </div>
 
-                        <section className="news-feed-panel">
+                        <section
+                          className="news-feed-panel"
+                          data-tour={viewMode === "map" ? "map-news-feed" : undefined}
+                        >
                           <div className="news-feed-header">
                             <strong>{activeRegion.region_name} Latest News</strong>
                             <span>{activeRegion.count} articles</span>
@@ -2032,7 +2051,10 @@ export default function ExplorePage() {
                           ))}
                         </aside>
 
-                        <div className="heatmap-stage">
+                        <div
+                          className="heatmap-stage"
+                          data-tour={viewMode === "explorer" && chartMode === "heatmap" ? "explorer-heatmap-stage" : undefined}
+                        >
                           <div className="heatmap-grid">
                             {filteredRegionStocks.map((stock) => (
                               <button
