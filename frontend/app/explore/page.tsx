@@ -820,7 +820,7 @@ function viewModeCopy(viewMode: ViewMode) {
     return "Click a region on the map. The right panel updates with related headlines, while sentiment shifts marker color.";
   }
   if (viewMode === "explorer") {
-    return "Explore markets through heatmaps and structure views. Compare countries, segments, and leading companies from one workspace.";
+    return "Explore markets through heatmaps and structure views. Compare countries, segments, and leaders in one workspace.";
   }
   if (viewMode === "chart") {
     return "Chart workspace placeholder. We can build chart-specific analytics and visual studies here next.";

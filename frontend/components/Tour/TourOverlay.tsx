@@ -249,10 +249,10 @@ export default function TourOverlay() {
 
         <div className="tour-actions">
           <button type="button" className="tour-skip-button" onClick={skip}>
-            건너뛰기
+            Skip
           </button>
           <button type="button" className="tour-next-button" onClick={next}>
-            {currentStepIndex === steps.length - 1 ? "시작하기" : "다음 →"}
+            {currentStepIndex === steps.length - 1 ? "Start" : "Next →"}
           </button>
         </div>
       </div>

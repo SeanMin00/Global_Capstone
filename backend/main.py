@@ -355,6 +355,60 @@ def market_risk_cache_status(conn: psycopg.Connection[Any]) -> tuple[int, dateti
     return row["row_count"], row["last_updated_at"]
 
 
+def ensure_market_risk_refresh_log_table(conn: psycopg.Connection[Any]) -> None:
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            create table if not exists public.market_risk_refresh_log (
+              refresh_date date primary key,
+              attempted_at timestamptz not null,
+              succeeded boolean not null default false,
+              message text
+            )
+            """
+        )
+
+
+def market_risk_refresh_attempted_today(conn: psycopg.Connection[Any]) -> bool:
+    ensure_market_risk_refresh_log_table(conn)
+    with conn.cursor(row_factory=dict_row) as cur:
+        row = cur.execute(
+            """
+            select refresh_date
+            from public.market_risk_refresh_log
+            where refresh_date = %s
+            """,
+            (now_utc().date(),),
+        ).fetchone()
+    return bool(row)
+
+
+def log_market_risk_refresh_attempt(
+    conn: psycopg.Connection[Any],
+    *,
+    succeeded: bool,
+    message: str,
+) -> None:
+    ensure_market_risk_refresh_log_table(conn)
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            insert into public.market_risk_refresh_log (
+              refresh_date,
+              attempted_at,
+              succeeded,
+              message
+            )
+            values (%s, %s, %s, %s)
+            on conflict (refresh_date) do update set
+              attempted_at = excluded.attempted_at,
+              succeeded = excluded.succeeded,
+              message = excluded.message
+            """,
+            (now_utc().date(), now_utc(), succeeded, message),
+        )
+
+
 async def ensure_market_risk_cache(conn: psycopg.Connection[Any]) -> bool:
     if not MARKET_RISK_AUTO_REFRESH_DAILY or not market_risk_ready():
         return False
@@ -363,12 +417,34 @@ async def ensure_market_risk_cache(conn: psycopg.Connection[Any]) -> bool:
     if row_count > 0 and last_updated_at and last_updated_at.date() >= now_utc().date():
         return False
 
+    if market_risk_refresh_attempted_today(conn):
+        return False
+
+    log_market_risk_refresh_attempt(
+        conn,
+        succeeded=False,
+        message="Daily refresh started.",
+    )
+    conn.commit()
+
     try:
         await refresh_market_risk_pipeline(conn)
         conn.commit()
+        log_market_risk_refresh_attempt(
+            conn,
+            succeeded=True,
+            message="Daily refresh completed successfully.",
+        )
+        conn.commit()
         return True
-    except Exception:
+    except Exception as exc:
         conn.rollback()
+        log_market_risk_refresh_attempt(
+            conn,
+            succeeded=False,
+            message=f"Daily refresh failed: {exc}",
+        )
+        conn.commit()
         return False
 
 
