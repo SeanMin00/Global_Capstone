@@ -62,6 +62,22 @@ function formatSharpe(value: number) {
   return value.toFixed(2);
 }
 
+function mean(values: number[]) {
+  if (!values.length) return 0;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function covariance(valuesA: number[], valuesB: number[]) {
+  if (valuesA.length < 2 || valuesB.length < 2) return 0;
+  const meanA = mean(valuesA);
+  const meanB = mean(valuesB);
+  let total = 0;
+  for (let index = 0; index < valuesA.length; index += 1) {
+    total += (valuesA[index] - meanA) * (valuesB[index] - meanB);
+  }
+  return total / (valuesA.length - 1);
+}
+
 function formatSignedPercent(value: number) {
   const prefix = value > 0 ? "+" : "";
   return `${prefix}${(value * 100).toFixed(1)}%`;
@@ -90,6 +106,92 @@ function capmInterpretation(payload: CapmAnalyzeResponse | null) {
     return "This portfolio is trailing the CAPM baseline by a visible margin, so the return outlook may be weak for the market risk it takes.";
   }
   return "This portfolio is close to the CAPM baseline, so it is behaving roughly in line with its market sensitivity.";
+}
+
+function buildFallbackCapmAnalysis(params: {
+  assets: PortfolioAssetInput[];
+  priceHistoryCache: Record<string, HistoricalClosePoint[]>;
+  riskFreeRateInfo: RiskFreeRateResponse | null;
+  userPortfolio: { risk: number; return: number; sharpe: number };
+}) {
+  const { assets, priceHistoryCache, riskFreeRateInfo, userPortfolio } = params;
+  const benchmarkTicker = "SPY";
+  const normalizedAssets = sanitizePortfolioAssets(assets).assets;
+  const portfolioAssets = normalizedAssets.filter((asset) => (priceHistoryCache[asset.ticker] ?? []).length > 0);
+  const benchmarkSeries = priceHistoryCache[benchmarkTicker] ?? [];
+
+  if (!portfolioAssets.length || benchmarkSeries.length < 30) {
+    return null;
+  }
+
+  const tickers = [...portfolioAssets.map((asset) => asset.ticker), benchmarkTicker];
+  const dateSets = tickers.map((ticker) => new Set((priceHistoryCache[ticker] ?? []).map((point) => point.date)));
+  const overlappingDates = [...dateSets[0]].filter((date) => dateSets.every((set) => set.has(date))).sort();
+  if (overlappingDates.length < 31) {
+    return null;
+  }
+
+  const alignedPrices = tickers.map((ticker) => {
+    const series = priceHistoryCache[ticker] ?? [];
+    const priceMap = new Map(series.map((point) => [point.date, point.close]));
+    return overlappingDates.map((date) => priceMap.get(date) ?? null);
+  });
+
+  const returnMatrix: number[][] = [];
+  for (let index = 1; index < overlappingDates.length; index += 1) {
+    const row = alignedPrices.map((prices) => {
+      const previous = prices[index - 1];
+      const current = prices[index];
+      if (previous === null || current === null || previous <= 0 || current <= 0) {
+        return Number.NaN;
+      }
+      return current / previous - 1;
+    });
+    if (!row.some((value) => Number.isNaN(value))) {
+      returnMatrix.push(row);
+    }
+  }
+
+  if (returnMatrix.length < 30) {
+    return null;
+  }
+
+  const benchmarkReturns = returnMatrix.map((row) => row[row.length - 1]);
+  const portfolioReturns = returnMatrix.map((row) =>
+    row.slice(0, portfolioAssets.length).reduce((sum, assetReturn, index) => sum + assetReturn * portfolioAssets[index].weight, 0),
+  );
+
+  const riskFreeRate = riskFreeRateInfo?.rate ?? DEFAULT_RISK_FREE_RATE;
+  const benchmarkReturn = mean(benchmarkReturns) * 252;
+  const benchmarkVariance = covariance(benchmarkReturns, benchmarkReturns);
+  const beta = benchmarkVariance > 0 ? covariance(portfolioReturns, benchmarkReturns) / benchmarkVariance : 0;
+  const capmExpectedReturn = riskFreeRate + beta * (benchmarkReturn - riskFreeRate);
+  const alpha = userPortfolio.return - capmExpectedReturn;
+
+  return {
+    benchmark_ticker: benchmarkTicker,
+    aligned_observations: returnMatrix.length,
+    portfolio_return: userPortfolio.return,
+    portfolio_volatility: userPortfolio.risk,
+    portfolio_sharpe: userPortfolio.sharpe,
+    benchmark_return: benchmarkReturn,
+    beta,
+    capm_expected_return: capmExpectedReturn,
+    alpha,
+    risk_free_rate: riskFreeRate,
+    risk_free_rate_info:
+      riskFreeRateInfo ?? {
+        rate: DEFAULT_RISK_FREE_RATE,
+        rate_percent: DEFAULT_RISK_FREE_RATE * 100,
+        source: "FRED - 3-Month Treasury Constant Maturity (DGS3MO)",
+        series_id: "DGS3MO",
+        as_of: null,
+        last_updated_timestamp: new Date().toISOString(),
+        is_fallback: true,
+        note: "Using fallback value.",
+      },
+    weights: Object.fromEntries(portfolioAssets.map((asset) => [asset.ticker, Number(asset.weight.toFixed(4))])),
+  } satisfies CapmAnalyzeResponse;
 }
 
 function uniqueAssetTicker(inputs: PortfolioAssetInput[]) {
@@ -398,12 +500,23 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
         }
       } catch (fetchError) {
         if (!cancelled) {
-          setCapmAnalysis(null);
-          setCapmError(
-            fetchError instanceof Error
-              ? fetchError.message
-              : "CAPM analysis could not be loaded right now.",
-          );
+          const fallback = buildFallbackCapmAnalysis({
+            assets: portfolioAssets,
+            priceHistoryCache,
+            riskFreeRateInfo,
+            userPortfolio: analysis.userPortfolio,
+          });
+          if (fallback) {
+            setCapmAnalysis(fallback);
+            setCapmError("");
+          } else {
+            setCapmAnalysis(null);
+            setCapmError(
+              fetchError instanceof Error
+                ? fetchError.message
+                : "CAPM analysis could not be loaded right now.",
+            );
+          }
         }
       } finally {
         if (!cancelled) {
@@ -417,7 +530,7 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
     return () => {
       cancelled = true;
     };
-  }, [capmOpen, normalizedAssets.assets, portfolioAssets]);
+  }, [analysis.userPortfolio, capmOpen, normalizedAssets.assets, portfolioAssets, priceHistoryCache, riskFreeRateInfo]);
 
   function updateAsset(index: number, next: Partial<PortfolioAssetInput>) {
     setPortfolioAssets((current) =>
