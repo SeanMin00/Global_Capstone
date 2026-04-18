@@ -542,7 +542,7 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
           <span className="map-chip">{chartSummary.alignedObservations} aligned daily returns</span>
         </div>
 
-        <div className="portfolio-chart-shell">
+        <div className="portfolio-chart-shell" data-tour="pf-cml-chart">
           <div className="portfolio-axis-guide portfolio-axis-guide-top">
             <div>
               <span>Y-axis</span>

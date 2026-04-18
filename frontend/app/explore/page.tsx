@@ -1,10 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import SentimentWorldMap from "../sentiment-world-map";
 import StockDetailView from "../stocks/stock-detail-view";
 import { buildApiUrl } from "../stocks/stock-api";
 import PortfolioEfficiencyPanel from "../portfolio/portfolio-efficiency-panel";
+import TourOverlay from "../../components/Tour/TourOverlay";
+import TourProvider from "../../components/Tour/TourProvider";
+import { tourSteps, type TourStep } from "../../components/Tour/tourSteps";
+import { useTour } from "../../components/Tour/useTour";
 
 type RegionArticle = {
   title: string;
@@ -930,6 +934,17 @@ function buildAggregatedRiskSnapshot(
   };
 }
 
+function HeroTourButton() {
+  const { start } = useTour();
+
+  return (
+    <button type="button" className="tour-launch-button" onClick={() => start(true)}>
+      <span className="tour-launch-icon">?</span>
+      Tour
+    </button>
+  );
+}
+
 export default function ExplorePage() {
   const [regions, setRegions] = useState<RegionSummary[]>([]);
   const [selectedRegion, setSelectedRegion] = useState<RegionCode>("EU");
@@ -1439,9 +1454,8 @@ export default function ExplorePage() {
   }
 
   function enterMapGroup(group: BaseRegion) {
-    const defaultRegion = detailRegionsByGroup[group][0]?.region ?? group;
     setMapFocusRegion(group);
-    setSelectedRegion(defaultRegion);
+    setSelectedRegion(group);
   }
 
   function returnToGlobalMap() {
@@ -1497,9 +1511,39 @@ export default function ExplorePage() {
   }
 
   const canContinueProfile = profileForm.name.trim().length > 0 || profileForm.email.trim().length > 0;
+  const handleTourStepChange = useCallback((step: TourStep) => {
+    if (step.page === "/profile") {
+      setViewMode("personal");
+      setProfileStep("preferences");
+      return;
+    }
+
+    if (step.page === "/map") {
+      setViewMode("map");
+      return;
+    }
+
+    if (step.page === "/explorer") {
+      setViewMode("explorer");
+      setChartMode("structure");
+      setStructureViewMode("country");
+      return;
+    }
+
+    if (step.page === "/chart") {
+      setViewMode("chart");
+      return;
+    }
+
+    if (step.page === "/pf") {
+      setViewMode("pf");
+    }
+  }, []);
 
   return (
-    <main className="explore-page">
+    <TourProvider steps={tourSteps} onStepChange={handleTourStepChange}>
+      <TourOverlay />
+      <main className="explore-page">
       <section className="explore-shell">
         <aside className="left-rail no-logo">
           <div className="rail-stack compact">
@@ -1547,6 +1591,9 @@ export default function ExplorePage() {
               <h1>{viewModeLabel(viewMode)}</h1>
               <p className="hero-copy">{viewModeCopy(viewMode)}</p>
             </div>
+            <div className="hero-actions">
+              <HeroTourButton />
+            </div>
           </header>
 
           {loading ? <div className="state-card">Loading live news from GDELT...</div> : null}
@@ -1555,7 +1602,10 @@ export default function ExplorePage() {
           {!loading && regions.length > 0 ? (
             <>
               {viewMode === "map" || (viewMode === "explorer" && !(chartMode === "structure" && structureViewMode === "segment")) ? (
-                <div className="region-tabs">
+                <div
+                  className="region-tabs"
+                  data-tour={viewMode === "map" ? "map-region-tabs" : undefined}
+                >
                   {viewMode === "explorer"
                     ? sortedRegions.map((region) => (
                         <button
@@ -1736,7 +1786,15 @@ export default function ExplorePage() {
                           {displayedMarketRisk ? (
                             <div className="risk-breakdown-grid">
                               <div className="risk-breakdown-item">
-                                <span>Volatility</span>
+                                <div className="risk-breakdown-heading">
+                                  <span>Volatility</span>
+                                  <span className="info-tooltip" tabIndex={0}>
+                                    ?
+                                    <span className="info-tooltip-card">
+                                      30-day realized market volatility. Higher values mean the selected market has been moving more sharply day to day.
+                                    </span>
+                                  </span>
+                                </div>
                                 <label>Score</label>
                                 <strong>{displayedMarketRisk.component_scores.volatility.toFixed(1)}</strong>
                                 <small>
@@ -1745,7 +1803,15 @@ export default function ExplorePage() {
                                 </small>
                               </div>
                               <div className="risk-breakdown-item">
-                                <span>Beta</span>
+                                <div className="risk-breakdown-heading">
+                                  <span>Beta</span>
+                                  <span className="info-tooltip" tabIndex={0}>
+                                    ?
+                                    <span className="info-tooltip-card">
+                                      Sensitivity to the global benchmark. A beta above 1 means this market tends to move more than the benchmark when global risk shifts.
+                                    </span>
+                                  </span>
+                                </div>
                                 <label>Score</label>
                                 <strong>{displayedMarketRisk.component_scores.beta.toFixed(1)}</strong>
                                 <small>
@@ -1756,7 +1822,15 @@ export default function ExplorePage() {
                                 </small>
                               </div>
                               <div className="risk-breakdown-item">
-                                <span>FX Risk</span>
+                                <div className="risk-breakdown-heading">
+                                  <span>FX Risk</span>
+                                  <span className="info-tooltip" tabIndex={0}>
+                                    ?
+                                    <span className="info-tooltip-card">
+                                      30-day foreign-exchange volatility versus the U.S. dollar. Higher values mean currency swings add more uncertainty to market returns.
+                                    </span>
+                                  </span>
+                                </div>
                                 <label>Score</label>
                                 <strong>{displayedMarketRisk.component_scores.fx_risk.toFixed(1)}</strong>
                                 <small>
@@ -1930,6 +2004,15 @@ export default function ExplorePage() {
                                   type="button"
                                   className={`structure-country-card ${selectedStructureCountry === countryCode ? "active" : ""}`}
                                   onClick={() => setSelectedStructureCountry(countryCode as Exclude<RegionCode, BaseRegion>)}
+                                  style={
+                                    selectedStructureCountry === countryCode
+                                      ? {
+                                          borderColor: regionCard.color,
+                                          background: sentimentBackground(regionCard.sentiment),
+                                          boxShadow: `0 0 0 1px ${regionCard.color}22`,
+                                        }
+                                      : undefined
+                                  }
                                 >
                                   <span>{regionLabels[countryCode]}</span>
                                   <strong>{regionCard.region_name}</strong>
@@ -1945,7 +2028,7 @@ export default function ExplorePage() {
                             <span>Top Segments</span>
                             <strong>{mapRegionLookup.get(selectedStructureCountry)?.region_name ?? regionLabels[selectedStructureCountry]}</strong>
                           </div>
-                          <div className="structure-segment-grid">
+                          <div className="structure-segment-grid" data-tour="explorer-segment-list">
                             {selectedCountrySegments.map((segment) => (
                               <button
                                 key={segment.segment}
@@ -2432,7 +2515,7 @@ export default function ExplorePage() {
                               <strong>Risk profile</strong>
                               <span>Set how cautious this investor should be under volatility and drawdowns.</span>
                             </div>
-                            <div className="profile-slider-stack">
+                            <div className="profile-slider-stack" data-tour="profile-risk-slider">
                               <label className="profile-field">
                                 <div className="profile-field-label">
                                   <span>Risk aversion</span>
@@ -2648,6 +2731,7 @@ export default function ExplorePage() {
           ) : null}
         </div>
       </section>
-    </main>
+      </main>
+    </TourProvider>
   );
 }

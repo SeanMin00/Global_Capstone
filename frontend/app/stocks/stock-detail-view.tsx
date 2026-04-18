@@ -132,7 +132,7 @@ function StockChartContent({ initialTicker, embedded = false }: Props) {
           ))}
         </div>
 
-        <div className="stock-search-group">
+        <div className="stock-search-group" data-tour="chart-ticker-search">
           <label className="stock-input-group">
             <span>Search ticker</span>
             <input
