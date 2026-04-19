@@ -1574,6 +1574,20 @@ export default function ExplorePage() {
       return;
     }
 
+    if (step.page === "/explorer-country") {
+      setViewMode("explorer");
+      setChartMode("structure");
+      setStructureViewMode("country");
+      return;
+    }
+
+    if (step.page === "/explorer-segment") {
+      setViewMode("explorer");
+      setChartMode("structure");
+      setStructureViewMode("segment");
+      return;
+    }
+
     if (step.page === "/explorer-structure") {
       setViewMode("explorer");
       setChartMode("structure");
@@ -1667,7 +1681,7 @@ export default function ExplorePage() {
         </aside>
 
         <div className="explore-main">
-          <header className="hero" data-tour={viewMode === "map" ? "landing-overview" : undefined}>
+          <header className="hero">
             <div className="hero-copy-block">
               <h1>{viewModeLabel(viewMode)}</h1>
               <p className="hero-copy">{viewModeCopy(viewMode)}</p>
@@ -1804,7 +1818,10 @@ export default function ExplorePage() {
                           </div>
                         </div>
 
-                        <div className="summary-hero-card">
+                        <div
+                          className="summary-hero-card"
+                          data-tour={viewMode === "map" ? "map-sentiment-card" : undefined}
+                        >
                           <div className="summary-hero-top">
                             <span className="summary-hero-label">Summary</span>
                             <div className="sentiment-pill">{sentimentLabel(activeRegion.sentiment)}</div>
@@ -2084,7 +2101,10 @@ export default function ExplorePage() {
                             <span>Countries</span>
                             <strong>{activeRegion?.region_name}</strong>
                           </div>
-                          <div className="structure-stack">
+                          <div
+                            className="structure-stack"
+                            data-tour={viewMode === "explorer" && chartMode === "structure" && structureViewMode === "country" ? "explorer-country-list" : undefined}
+                          >
                             {structureCountries.map((countryCode) => {
                               const regionCard = mapRegionLookup.get(countryCode);
                               if (!regionCard) return null;
@@ -2158,7 +2178,10 @@ export default function ExplorePage() {
                             <span>Segments</span>
                             <strong>Global View</strong>
                           </div>
-                          <div className="structure-stack">
+                          <div
+                            className="structure-stack"
+                            data-tour={viewMode === "explorer" && chartMode === "structure" && structureViewMode === "segment" ? "explorer-global-segment-list" : undefined}
+                          >
                             {aggregatedSegments.map((segment) => (
                               <button
                                 key={segment.segment}
