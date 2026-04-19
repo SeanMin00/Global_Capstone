@@ -482,6 +482,10 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
 
   const chartSummary = analysis.summary;
   const tangencyWeights = analysis.tangencyPortfolio?.weights ?? {};
+  const tangencyComparison = analysis.tangencyPortfolio;
+  const userWinsReturn = tangencyComparison ? analysis.userPortfolio.return > tangencyComparison.return : false;
+  const userWinsVolatility = tangencyComparison ? analysis.userPortfolio.risk < tangencyComparison.risk : false;
+  const userWinsSharpe = tangencyComparison ? analysis.userPortfolio.sharpe > tangencyComparison.sharpe : false;
 
   useEffect(() => {
     if (!capmAnalysis) return;
@@ -605,9 +609,6 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
         <div className="portfolio-header-chips">
           <span className="map-chip">1Y lookback</span>
           <span className="map-chip">Rf {formatPercent(activeRiskFreeRate)}</span>
-          <button type="button" className="portfolio-capm-trigger" onClick={() => setCapmOpen(true)}>
-            CAPM Analysis
-          </button>
         </div>
       </div>
 
@@ -862,47 +863,61 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
       </section>
 
       <section className="portfolio-bottom-grid">
-        <div className="portfolio-summary-panel">
-          <span className="eyebrow">My portfolio</span>
-          <div className="portfolio-summary-stack">
-            <div className="portfolio-summary-card">
-              <span>Expected return</span>
-              <strong>{formatPercent(analysis.userPortfolio.return)}</strong>
-            </div>
-            <div className="portfolio-summary-card">
-              <span>Volatility</span>
-              <strong>{formatPercent(analysis.userPortfolio.risk)}</strong>
-            </div>
-            <div className="portfolio-summary-card">
-              <span>Sharpe ratio</span>
-              <strong>{formatSharpe(analysis.userPortfolio.sharpe)}</strong>
+        <div className="portfolio-compare-group" data-tour="pf-portfolio-compare">
+          <div className="portfolio-summary-panel">
+            <span className="eyebrow">My portfolio</span>
+            <div className="portfolio-summary-card portfolio-stacked-metrics-card">
+              <div className="portfolio-stacked-metric-row">
+                <span>Expected return</span>
+                <strong className={userWinsReturn ? "portfolio-metric-winner" : undefined}>
+                  {formatPercent(analysis.userPortfolio.return)}
+                </strong>
+              </div>
+              <div className="portfolio-stacked-metric-row">
+                <span>Volatility</span>
+                <strong className={userWinsVolatility ? "portfolio-metric-winner" : undefined}>
+                  {formatPercent(analysis.userPortfolio.risk)}
+                </strong>
+              </div>
+              <div className="portfolio-stacked-metric-row">
+                <span>Sharpe ratio</span>
+                <strong className={userWinsSharpe ? "portfolio-metric-winner" : undefined}>
+                  {formatSharpe(analysis.userPortfolio.sharpe)}
+                </strong>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="portfolio-summary-panel">
-          <span className="eyebrow">Tangency portfolio</span>
-          {analysis.tangencyPortfolio ? (
-            <div className="portfolio-summary-stack">
-              <div className="portfolio-summary-card">
-                <span>Expected return</span>
-                <strong>{formatPercent(analysis.tangencyPortfolio.return)}</strong>
+          <div className="portfolio-summary-panel">
+            <span className="eyebrow">Tangency portfolio</span>
+            {analysis.tangencyPortfolio ? (
+              <div className="portfolio-summary-card portfolio-stacked-metrics-card">
+                <div className="portfolio-stacked-metric-row">
+                  <span>Expected return</span>
+                  <strong className={!userWinsReturn ? "portfolio-metric-winner" : undefined}>
+                    {formatPercent(analysis.tangencyPortfolio.return)}
+                  </strong>
+                </div>
+                <div className="portfolio-stacked-metric-row">
+                  <span>Volatility</span>
+                  <strong className={!userWinsVolatility ? "portfolio-metric-winner" : undefined}>
+                    {formatPercent(analysis.tangencyPortfolio.risk)}
+                  </strong>
+                </div>
+                <div className="portfolio-stacked-metric-row">
+                  <span>Sharpe ratio</span>
+                  <strong className={!userWinsSharpe ? "portfolio-metric-winner" : undefined}>
+                    {formatSharpe(analysis.tangencyPortfolio.sharpe)}
+                  </strong>
+                </div>
               </div>
+            ) : (
               <div className="portfolio-summary-card">
-                <span>Volatility</span>
-                <strong>{formatPercent(analysis.tangencyPortfolio.risk)}</strong>
+                <span>Status</span>
+                <strong>Not available</strong>
               </div>
-              <div className="portfolio-summary-card">
-                <span>Sharpe ratio</span>
-                <strong>{formatSharpe(analysis.tangencyPortfolio.sharpe)}</strong>
-              </div>
-            </div>
-          ) : (
-            <div className="portfolio-summary-card">
-              <span>Status</span>
-              <strong>Not available</strong>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         <div className="portfolio-summary-panel">
@@ -937,6 +952,10 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
           <span className="eyebrow">Interpretation</span>
           <h3>Beginner-friendly readout</h3>
           <p>{chartSummary.interpretation}</p>
+          <button type="button" className="portfolio-capm-inline-trigger" onClick={() => setCapmOpen(true)}>
+            CAPM analysis
+            <span aria-hidden="true">→</span>
+          </button>
         </div>
       </section>
 

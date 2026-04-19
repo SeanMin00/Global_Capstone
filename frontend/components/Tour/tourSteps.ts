@@ -79,9 +79,17 @@ export const tourSteps: TourStep[] = [
   {
     targetSelector: '[data-tour="pf-cml-chart"]',
     page: "/pf",
-    title: "Finish in the portfolio workspace",
+    title: "Read portfolio efficiency first",
     description:
-      "This portfolio page is also evolving, but you can already test weights, read the CML chart, and open CAPM analysis to understand market-risk tradeoffs.",
+      "Use the CML chart to see where your portfolio sits against simulated portfolios and the efficient frontier.",
+    position: "top",
+  },
+  {
+    targetSelector: '[data-tour="pf-portfolio-compare"]',
+    page: "/pf",
+    title: "Compare your portfolio with the optimal one",
+    description:
+      "This final block compares your current allocation with the tangency portfolio, so you can quickly see return, volatility, and Sharpe differences.",
     position: "top",
   },
 ];
