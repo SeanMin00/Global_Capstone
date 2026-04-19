@@ -625,18 +625,30 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
           <div className="portfolio-asset-list">
             {portfolioAssets.map((asset, index) => (
               <div key={`${asset.ticker}-${index}`} className="portfolio-asset-row">
-                <input
-                  value={asset.ticker}
-                  onChange={(event) => updateAsset(index, { ticker: event.target.value.toUpperCase() })}
-                  placeholder="Ticker"
-                />
-                <input
-                  type="number"
-                  value={asset.weight}
-                  onChange={(event) => updateAsset(index, { weight: Number(event.target.value) })}
-                  min="0"
-                  step="0.5"
-                />
+                <div className="portfolio-asset-index" aria-hidden="true">
+                  {String(index + 1).padStart(2, "0")}
+                </div>
+                <label className="portfolio-asset-field portfolio-asset-ticker-field">
+                  <span className="portfolio-asset-label">Ticker</span>
+                  <input
+                    value={asset.ticker}
+                    onChange={(event) => updateAsset(index, { ticker: event.target.value.toUpperCase() })}
+                    placeholder="Ticker"
+                  />
+                </label>
+                <label className="portfolio-asset-field portfolio-asset-weight-field">
+                  <span className="portfolio-asset-label">Weight (%)</span>
+                  <div className="portfolio-weight-input-wrap">
+                    <input
+                      type="number"
+                      value={asset.weight}
+                      onChange={(event) => updateAsset(index, { weight: Number(event.target.value) })}
+                      min="0"
+                      step="0.5"
+                    />
+                    <span className="portfolio-weight-unit">%</span>
+                  </div>
+                </label>
                 <button type="button" className="portfolio-ghost-button" onClick={() => removeTicker(index)}>
                   Remove
                 </button>
