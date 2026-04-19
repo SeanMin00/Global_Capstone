@@ -13,12 +13,20 @@ export const TOUR_COMPLETION_KEY = "global-capstone-tour-complete";
 
 export const tourSteps: TourStep[] = [
   {
-    targetSelector: '[data-tour="profile-risk-slider"]',
+    targetSelector: '[data-tour="profile-preferences-flow"]',
     page: "/profile",
-    title: "Set your investor profile first",
+    title: "Start with strategy and risk setup",
     description:
-      "Start here by setting your risk aversion and loss limit. The portfolio tools use this to better match your situation.",
+      "Start by setting your investment goal, horizon, risk aversion, and loss tolerance. This gives the rest of the platform the right context.",
     position: "right",
+  },
+  {
+    targetSelector: '[data-tour="profile-signal-bars"]',
+    page: "/profile",
+    title: "Use the summary bars on the right",
+    description:
+      "These bars translate your profile into expected return, drawdown tolerance, and diversification need in a simpler visual format.",
+    position: "left",
   },
   {
     targetSelector: '[data-tour="map-region-tabs"]',
@@ -37,11 +45,11 @@ export const tourSteps: TourStep[] = [
     position: "top",
   },
   {
-    targetSelector: '[data-tour="map-sentiment-card"]',
+    targetSelector: '[data-tour="map-summary-sentiment"]',
     page: "/map",
-    title: "Read the news-based sentiment score",
+    title: "Read summary and sentiment together",
     description:
-      "This summary and score are based on the latest news flow for the selected market. Use it as a quick read on positive versus negative tone.",
+      "This block combines the news summary with the sentiment score, so you can quickly see what happened and whether the tone is positive or negative.",
     position: "left",
   },
   {
@@ -55,33 +63,49 @@ export const tourSteps: TourStep[] = [
   {
     targetSelector: '[data-tour="explorer-country-list"]',
     page: "/explorer-country",
-    title: "Start structure view with countries",
+    title: "Compare markets in By Country",
     description:
-      "By Country helps you compare markets one by one and inspect which country has stronger segment structure right now.",
+      "By Country lets you compare one market at a time and inspect which industries are leading inside that market.",
     position: "right",
   },
   {
     targetSelector: '[data-tour="explorer-global-segment-list"]',
     page: "/explorer-segment",
-    title: "Then compare global segments",
+    title: "Then switch to By Segment",
     description:
-      "By Segment flips the view so you can compare industries across markets and see which themes may be leading globally.",
+      "By Segment flips the view so you can compare the same industry theme across multiple markets.",
     position: "right",
+  },
+  {
+    targetSelector: '[data-tour="chart-workspace"]',
+    page: "/chart",
+    title: "Use the full chart workspace",
+    description:
+      "This area gives you a quick stock view with price trend, quote summary, and time range controls.",
+    position: "bottom",
   },
   {
     targetSelector: '[data-tour="chart-ticker-search"]',
     page: "/chart",
-    title: "Check a ticker in the trend viewer",
+    title: "Search the ticker you want to test",
     description:
-      "This chart tool is still growing, but it already lets you search a ticker and verify price trend, daily move, and the previous close.",
+      "Search a ticker here to update the chart, quote, and side metrics for the company you want to inspect.",
+    position: "bottom",
+  },
+  {
+    targetSelector: '[data-tour="pf-input-panel"]',
+    page: "/pf",
+    title: "Build the portfolio inputs first",
+    description:
+      "Choose the tickers and weights here. These inputs drive the portfolio chart and the efficiency analysis.",
     position: "right",
   },
   {
     targetSelector: '[data-tour="pf-cml-chart"]',
     page: "/pf",
-    title: "Read portfolio efficiency first",
+    title: "Then read the portfolio chart",
     description:
-      "Use the CML chart to see where your portfolio sits against simulated portfolios and the efficient frontier.",
+      "Use the CML chart to see where your portfolio sits against random portfolios, the efficient frontier, and the capital market line.",
     position: "top",
   },
   {
@@ -91,5 +115,13 @@ export const tourSteps: TourStep[] = [
     description:
       "This final block compares your current allocation with the tangency portfolio, so you can quickly see return, volatility, and Sharpe differences.",
     position: "top",
+  },
+  {
+    targetSelector: '[data-tour="pf-beginner-readout"]',
+    page: "/pf",
+    title: "Finish with the beginner-friendly readout",
+    description:
+      "This summary translates the chart into plain language so you can understand whether your portfolio looks efficient or needs adjustment.",
+    position: "left",
   },
 ];

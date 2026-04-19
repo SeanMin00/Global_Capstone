@@ -820,7 +820,7 @@ function viewModeCopy(viewMode: ViewMode) {
     return "Click a region on the map. The right panel updates with related headlines, while sentiment shifts marker color.";
   }
   if (viewMode === "explorer") {
-    return "Explore markets through heatmaps and structure views. Compare countries, segments, and leaders in one workspace.";
+    return "Explore heatmaps, countries, segments, and leaders in one workspace.";
   }
   if (viewMode === "chart") {
     return "Chart workspace placeholder. We can build chart-specific analytics and visual studies here next.";
@@ -1819,33 +1819,35 @@ export default function ExplorePage() {
                         </div>
 
                         <div
-                          className="summary-hero-card"
-                          data-tour={viewMode === "map" ? "map-sentiment-card" : undefined}
+                          className="summary-sentiment-stack"
+                          data-tour={viewMode === "map" ? "map-summary-sentiment" : undefined}
                         >
-                          <div className="summary-hero-top">
-                            <span className="summary-hero-label">Summary</span>
-                            <div className="sentiment-pill">{sentimentLabel(activeRegion.sentiment)}</div>
+                          <div className="summary-hero-card">
+                            <div className="summary-hero-top">
+                              <span className="summary-hero-label">Summary</span>
+                              <div className="sentiment-pill">{sentimentLabel(activeRegion.sentiment)}</div>
+                            </div>
+                            <p className="summary-hero-copy">{activeRegion.summary}</p>
                           </div>
-                          <p className="summary-hero-copy">{activeRegion.summary}</p>
-                        </div>
 
-                        <div className="sentiment-scale">
-                          <span className="sentiment-scale-edge">Negative</span>
-                          <strong className="sentiment-scale-value">
-                            Sentiment: {activeRegion.sentiment >= 0 ? "+" : ""}
-                            {activeRegion.sentiment.toFixed(2)}
-                          </strong>
-                          <span className="sentiment-scale-edge sentiment-scale-edge-right">Positive</span>
-                        </div>
+                          <div className="sentiment-scale">
+                            <span className="sentiment-scale-edge">Negative</span>
+                            <strong className="sentiment-scale-value">
+                              Sentiment: {activeRegion.sentiment >= 0 ? "+" : ""}
+                              {activeRegion.sentiment.toFixed(2)}
+                            </strong>
+                            <span className="sentiment-scale-edge sentiment-scale-edge-right">Positive</span>
+                          </div>
 
-                        <div className="sentiment-bar">
-                          <div
-                            className="sentiment-bar-fill"
-                            style={{
-                              width: sentimentWidth(activeRegion.sentiment),
-                              background: sentimentGradient(activeRegion.sentiment),
-                            }}
-                          />
+                          <div className="sentiment-bar">
+                            <div
+                              className="sentiment-bar-fill"
+                              style={{
+                                width: sentimentWidth(activeRegion.sentiment),
+                                background: sentimentGradient(activeRegion.sentiment),
+                              }}
+                            />
+                          </div>
                         </div>
 
                         <div className="news-metrics">
@@ -2581,7 +2583,7 @@ export default function ExplorePage() {
                           </div>
                         </div>
                       ) : (
-                        <div className="profile-preferences-layout">
+                        <div className="profile-preferences-layout" data-tour="profile-preferences-flow">
                           <section className="profile-input-section profile-section-lg">
                             <div className="profile-input-section-header">
                               <strong>Strategy</strong>
@@ -2754,7 +2756,7 @@ export default function ExplorePage() {
                           <p>{profileSummary}</p>
                         </div>
 
-                        <div className="profile-report-signals">
+                        <div className="profile-report-signals" data-tour="profile-signal-bars">
                           <div className="profile-signal-row">
                             <span>Expected return</span>
                             <div className="profile-signal-bar">

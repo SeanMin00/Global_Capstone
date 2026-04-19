@@ -605,7 +605,7 @@ select {
 
 .hero-copy {
   margin: 12px 0 0;
-  max-width: 840px;
+  max-width: 100%;
   color: var(--muted);
   line-height: 1.7;
 }
@@ -4145,4 +4145,8 @@ select {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+}
+.summary-sentiment-stack {
+  display: grid;
+  gap: 14px;
 }

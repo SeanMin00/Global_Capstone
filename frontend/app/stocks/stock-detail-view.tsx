@@ -91,7 +91,10 @@ function StockChartContent({ initialTicker, embedded = false }: Props) {
   const isPositive = (quote?.day_change_pct ?? 0) >= 0;
 
   return (
-    <div className={embedded ? "stock-embed-card" : "stock-page-card"}>
+    <div
+      className={embedded ? "stock-embed-card" : "stock-page-card"}
+      data-tour={!embedded ? "chart-workspace" : undefined}
+    >
       {!embedded ? (
         <div className="stock-page-topbar">
           <div>

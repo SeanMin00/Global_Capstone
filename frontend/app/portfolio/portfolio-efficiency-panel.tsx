@@ -613,7 +613,7 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
       </div>
 
       <div className="portfolio-builder-grid">
-        <section className="portfolio-input-panel">
+        <section className="portfolio-input-panel" data-tour="pf-input-panel">
           <div className="portfolio-section-header">
             <div>
               <strong>Portfolio inputs</strong>
@@ -948,7 +948,7 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
           </div>
         </div>
 
-        <div className="portfolio-interpretation-card">
+        <div className="portfolio-interpretation-card" data-tour="pf-beginner-readout">
           <span className="eyebrow">Interpretation</span>
           <h3>Beginner-friendly readout</h3>
           <p>{chartSummary.interpretation}</p>
