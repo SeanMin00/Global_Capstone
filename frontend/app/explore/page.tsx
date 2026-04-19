@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import SentimentWorldMap from "../sentiment-world-map";
 import StockDetailView from "../stocks/stock-detail-view";
-import { buildApiUrl } from "../stocks/stock-api";
+import { buildApiUrl, fetchQuote, type QuoteResponse } from "../stocks/stock-api";
 import PortfolioEfficiencyPanel from "../portfolio/portfolio-efficiency-panel";
 import TourOverlay from "../../components/Tour/TourOverlay";
 import TourProvider from "../../components/Tour/TourProvider";
@@ -979,6 +979,71 @@ function buildAggregatedRiskSnapshot(
   };
 }
 
+function RailIcon({ viewMode }: { viewMode: ViewMode }) {
+  const commonProps = {
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.8,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+  };
+
+  if (viewMode === "map") {
+    return (
+      <svg {...commonProps} aria-hidden="true">
+        <path d="M3 6.5 9 4l6 2.5L21 4v13.5L15 20l-6-2.5L3 20V6.5Z" />
+        <path d="M9 4v13.5M15 6.5V20" />
+      </svg>
+    );
+  }
+
+  if (viewMode === "explorer") {
+    return (
+      <svg {...commonProps} aria-hidden="true">
+        <circle cx="11" cy="11" r="5.5" />
+        <path d="m16 16 4 4" />
+      </svg>
+    );
+  }
+
+  if (viewMode === "chart") {
+    return (
+      <svg {...commonProps} aria-hidden="true">
+        <path d="M4 18h16" />
+        <path d="M6 15.5 10 11l3 2.5L18 7.5" />
+        <path d="M18 7.5h-3.5M18 7.5V11" />
+      </svg>
+    );
+  }
+
+  if (viewMode === "pf") {
+    return (
+      <svg {...commonProps} aria-hidden="true">
+        <path d="M4 17.5 9.5 9l4 5 6.5-9" />
+        <path d="M4 20h16" />
+        <circle cx="9.5" cy="9" r="1" fill="currentColor" stroke="none" />
+        <circle cx="13.5" cy="14" r="1" fill="currentColor" stroke="none" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg {...commonProps} aria-hidden="true">
+      <circle cx="12" cy="8" r="3.2" />
+      <path d="M5 19c1.8-3.2 4.2-4.8 7-4.8s5.2 1.6 7 4.8" />
+    </svg>
+  );
+}
+
+const railItems: { key: ViewMode; label: string }[] = [
+  { key: "map", label: "Map" },
+  { key: "explorer", label: "Explorer" },
+  { key: "chart", label: "Chart" },
+  { key: "pf", label: "PF" },
+  { key: "personal", label: "Profile" },
+];
+
 function HeroTourButton() {
   const { start } = useTour();
 
@@ -988,6 +1053,22 @@ function HeroTourButton() {
       Tour
     </button>
   );
+}
+
+function formatPreviewPrice(value: number | null | undefined, currency: string | null | undefined) {
+  if (value === null || value === undefined || Number.isNaN(value)) {
+    return "--";
+  }
+
+  if (!currency) {
+    return value.toFixed(2);
+  }
+
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 2,
+  }).format(value);
 }
 
 export default function ExplorePage() {
@@ -1021,6 +1102,9 @@ export default function ExplorePage() {
   const [selectedStructureCountry, setSelectedStructureCountry] = useState<Exclude<RegionCode, BaseRegion>>("US");
   const [selectedStructureSegment, setSelectedStructureSegment] = useState("");
   const [compareTickers, setCompareTickers] = useState<string[]>([]);
+  const [quotePreviewCache, setQuotePreviewCache] = useState<Record<string, QuoteResponse | null>>({});
+  const [quotePreviewLoading, setQuotePreviewLoading] = useState<Record<string, boolean>>({});
+  const [hoveredTicker, setHoveredTicker] = useState<string | null>(null);
 
   const needsMarketData = viewMode === "map" || viewMode === "explorer";
 
@@ -1555,6 +1639,27 @@ export default function ExplorePage() {
     });
   }
 
+  const loadQuotePreview = useCallback(async (ticker: string) => {
+    if (quotePreviewCache[ticker] || quotePreviewLoading[ticker]) {
+      return;
+    }
+
+    setQuotePreviewLoading((current) => ({ ...current, [ticker]: true }));
+    try {
+      const quote = await fetchQuote(ticker);
+      setQuotePreviewCache((current) => ({ ...current, [ticker]: quote }));
+    } catch {
+      setQuotePreviewCache((current) => ({ ...current, [ticker]: null }));
+    } finally {
+      setQuotePreviewLoading((current) => ({ ...current, [ticker]: false }));
+    }
+  }, [quotePreviewCache, quotePreviewLoading]);
+
+  const openTickerInChart = useCallback((ticker: string) => {
+    setSelectedTicker(ticker);
+    setViewMode("chart");
+  }, []);
+
   const canContinueProfile = profileForm.name.trim().length > 0 || profileForm.email.trim().length > 0;
   const handleTourStepChange = useCallback((step: TourStep) => {
     if (step.page === "/profile") {
@@ -1642,41 +1747,20 @@ export default function ExplorePage() {
       <section className="explore-shell">
         <aside className="left-rail no-logo">
           <div className="rail-stack compact">
-            <button
-              type="button"
-              className={`rail-button ${viewMode === "map" ? "active" : ""}`}
-              onClick={() => setViewMode("map")}
-            >
-              Map
-            </button>
-            <button
-              type="button"
-              className={`rail-button ${viewMode === "explorer" ? "active" : ""}`}
-              onClick={() => setViewMode("explorer")}
-            >
-              Explorer
-            </button>
-            <button
-              type="button"
-              className={`rail-button ${viewMode === "chart" ? "active" : ""}`}
-              onClick={() => setViewMode("chart")}
-            >
-              Chart
-            </button>
-            <button
-              type="button"
-              className={`rail-button ${viewMode === "pf" ? "active" : ""}`}
-              onClick={() => setViewMode("pf")}
-            >
-              PF
-            </button>
-            <button
-              type="button"
-              className={`rail-button ${viewMode === "personal" ? "active" : ""}`}
-              onClick={() => setViewMode("personal")}
-            >
-              Profile
-            </button>
+            {railItems.map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                className={`rail-button rail-icon-button ${viewMode === item.key ? "active" : ""}`}
+                onClick={() => setViewMode(item.key)}
+                aria-label={item.label}
+              >
+                <span className="rail-button-icon">
+                  <RailIcon viewMode={item.key} />
+                </span>
+                <span className="rail-hover-label">{item.label}</span>
+              </button>
+            ))}
           </div>
         </aside>
 
@@ -2083,8 +2167,47 @@ export default function ExplorePage() {
                                   activeStock?.ticker === stock.ticker ? "selected" : ""
                                 }`}
                                 onClick={() => setSelectedTicker(stock.ticker)}
+                                onMouseEnter={() => {
+                                  setHoveredTicker(stock.ticker);
+                                  void loadQuotePreview(stock.ticker);
+                                }}
+                                onMouseLeave={() =>
+                                  setHoveredTicker((current) => (current === stock.ticker ? null : current))
+                                }
+                                onFocus={() => {
+                                  setHoveredTicker(stock.ticker);
+                                  void loadQuotePreview(stock.ticker);
+                                }}
+                                onBlur={() =>
+                                  setHoveredTicker((current) => (current === stock.ticker ? null : current))
+                                }
                               >
-                                <span className="heat-ticker">{stock.ticker}</span>
+                                <div className="heat-tile-head">
+                                  <span className="heat-ticker">{stock.ticker}</span>
+                                  <span
+                                    className="card-chart-link"
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      openTickerInChart(stock.ticker);
+                                    }}
+                                  >
+                                    Open chart
+                                  </span>
+                                </div>
+                                {hoveredTicker === stock.ticker ? (
+                                  <div className="ticker-hover-badge">
+                                    {quotePreviewLoading[stock.ticker]
+                                      ? "Loading price..."
+                                      : quotePreviewCache[stock.ticker]
+                                        ? `${formatPreviewPrice(
+                                            quotePreviewCache[stock.ticker]?.current_price,
+                                            quotePreviewCache[stock.ticker]?.currency,
+                                          )} · ${
+                                            (quotePreviewCache[stock.ticker]?.day_change_pct ?? 0) > 0 ? "+" : ""
+                                          }${(quotePreviewCache[stock.ticker]?.day_change_pct ?? 0).toFixed(2)}%`
+                                        : "Price unavailable"}
+                                  </div>
+                                ) : null}
                                 <span className="heat-name">{stock.name}</span>
                                 <span className="heat-sector">{stock.sector}</span>
                                 <strong className="heat-change">
@@ -2297,38 +2420,68 @@ export default function ExplorePage() {
                         </div>
 
                         <div className="article-list">
-                          {regionStocks.map((stock) => (
-                            <button
-                              key={stock.ticker}
-                              type="button"
-                              className={`article-card stock-list-card ${
-                                stock.ticker === activeStock.ticker ? "stock-list-card-active" : ""
-                              }`}
-                              onClick={() => setSelectedTicker(stock.ticker)}
-                            >
-                              <div className="article-meta">
-                                <span>{stock.sector}</span>
+                            {regionStocks.map((stock) => (
+                              <button
+                                key={stock.ticker}
+                                type="button"
+                                className={`article-card stock-list-card ${
+                                  stock.ticker === activeStock.ticker ? "stock-list-card-active" : ""
+                                }`}
+                                onClick={() => setSelectedTicker(stock.ticker)}
+                                onMouseEnter={() => {
+                                  setHoveredTicker(stock.ticker);
+                                  void loadQuotePreview(stock.ticker);
+                                }}
+                                onMouseLeave={() =>
+                                  setHoveredTicker((current) => (current === stock.ticker ? null : current))
+                                }
+                              >
+                                <div className="article-meta">
+                                  <span>{stock.sector}</span>
+                                  <div className="article-meta-actions">
+                                    {hoveredTicker === stock.ticker ? (
+                                      <span className="ticker-hover-inline">
+                                        {quotePreviewLoading[stock.ticker]
+                                          ? "Loading..."
+                                          : quotePreviewCache[stock.ticker]
+                                            ? formatPreviewPrice(
+                                                quotePreviewCache[stock.ticker]?.current_price,
+                                                quotePreviewCache[stock.ticker]?.currency,
+                                              )
+                                            : "N/A"}
+                                      </span>
+                                    ) : null}
+                                    <span
+                                      className="article-tone"
+                                      style={{
+                                        color:
+                                          stock.change > 0.5
+                                            ? "#86efac"
+                                            : stock.change < -0.5
+                                              ? "#fca5a5"
+                                              : "#fde68a",
+                                      }}
+                                    >
+                                      {stock.change > 0 ? "+" : ""}
+                                      {stock.change.toFixed(2)}%
+                                    </span>
+                                  </div>
+                                </div>
+                                <h3>
+                                  {stock.ticker} · {stock.name}
+                                </h3>
+                                <p>{stock.region} market heatmap block</p>
                                 <span
-                                  className="article-tone"
-                                  style={{
-                                    color:
-                                      stock.change > 0.5
-                                        ? "#86efac"
-                                        : stock.change < -0.5
-                                          ? "#fca5a5"
-                                          : "#fde68a",
+                                  className="card-chart-link card-chart-link-inline"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    openTickerInChart(stock.ticker);
                                   }}
                                 >
-                                  {stock.change > 0 ? "+" : ""}
-                                  {stock.change.toFixed(2)}%
+                                  Open chart
                                 </span>
-                              </div>
-                              <h3>
-                                {stock.ticker} · {stock.name}
-                              </h3>
-                              <p>{stock.region} market heatmap block</p>
-                            </button>
-                          ))}
+                              </button>
+                            ))}
                         </div>
                       </>
                     ) : chartMode === "structure" && structureViewMode === "country" && activeStructureSegment ? (
@@ -2377,16 +2530,46 @@ export default function ExplorePage() {
                                   compareTickers.includes(company.ticker) ? "stock-list-card-active" : ""
                                 }`}
                                 onClick={() => toggleCompareTicker(company.ticker)}
+                                onMouseEnter={() => {
+                                  setHoveredTicker(company.ticker);
+                                  void loadQuotePreview(company.ticker);
+                                }}
+                                onMouseLeave={() =>
+                                  setHoveredTicker((current) => (current === company.ticker ? null : current))
+                                }
                               >
                                 <div className="article-meta">
                                   <span>{company.ticker}</span>
-                                  <span className="article-tone">
-                                    {company.roi1Y > 0 ? "+" : ""}
-                                    {company.roi1Y}%
-                                  </span>
+                                  <div className="article-meta-actions">
+                                    {hoveredTicker === company.ticker ? (
+                                      <span className="ticker-hover-inline">
+                                        {quotePreviewLoading[company.ticker]
+                                          ? "Loading..."
+                                          : quotePreviewCache[company.ticker]
+                                            ? formatPreviewPrice(
+                                                quotePreviewCache[company.ticker]?.current_price,
+                                                quotePreviewCache[company.ticker]?.currency,
+                                              )
+                                            : "N/A"}
+                                      </span>
+                                    ) : null}
+                                    <span className="article-tone">
+                                      {company.roi1Y > 0 ? "+" : ""}
+                                      {company.roi1Y}%
+                                    </span>
+                                  </div>
                                 </div>
                                 <h3>{company.name}</h3>
                                 <p>{company.note}</p>
+                                <span
+                                  className="card-chart-link card-chart-link-inline"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    openTickerInChart(company.ticker);
+                                  }}
+                                >
+                                  Open chart
+                                </span>
                               </button>
                             ))}
                           </div>
@@ -2470,12 +2653,40 @@ export default function ExplorePage() {
                                   compareTickers.includes(company.ticker) ? "stock-list-card-active" : ""
                                 }`}
                                 onClick={() => toggleCompareTicker(company.ticker)}
+                                onMouseEnter={() => {
+                                  setHoveredTicker(company.ticker);
+                                  void loadQuotePreview(company.ticker);
+                                }}
+                                onMouseLeave={() =>
+                                  setHoveredTicker((current) => (current === company.ticker ? null : current))
+                                }
                               >
                                 <span>{regionLabels[company.country]}</span>
                                 <strong>{company.name}</strong>
                                 <small>{company.ticker}</small>
+                                {hoveredTicker === company.ticker ? (
+                                  <small className="ticker-hover-inline">
+                                    {quotePreviewLoading[company.ticker]
+                                      ? "Loading..."
+                                      : quotePreviewCache[company.ticker]
+                                        ? formatPreviewPrice(
+                                            quotePreviewCache[company.ticker]?.current_price,
+                                            quotePreviewCache[company.ticker]?.currency,
+                                          )
+                                        : "N/A"}
+                                  </small>
+                                ) : null}
                                 <small>{formatMarketCapUsd(company.marketCap)}</small>
                                 <small>ROI {company.roi1Y}%</small>
+                                <span
+                                  className="card-chart-link card-chart-link-inline"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    openTickerInChart(company.ticker);
+                                  }}
+                                >
+                                  Open chart
+                                </span>
                               </button>
                             ))}
                           </div>
@@ -2512,7 +2723,7 @@ export default function ExplorePage() {
                 </div>
               ) : viewMode === "chart" ? (
                 <div className="chart-tab-shell">
-                  <StockDetailView initialTicker="AAPL" embedded />
+                  <StockDetailView key={selectedTicker} initialTicker={selectedTicker} embedded />
                 </div>
               ) : viewMode === "pf" ? (
                 <PortfolioEfficiencyPanel profilePreferences={profilePreferences} />
