@@ -361,6 +361,55 @@ function RiskFreeRateHelp() {
   );
 }
 
+const PORTFOLIO_LEGEND_HELP: Record<string, string> = {
+  "Random portfolios":
+    "These gray dots are sample portfolios made by mixing your selected tickers in many different weight combinations.",
+  "Efficient frontier":
+    "This blue line marks the best simulated portfolios for each risk level in this group.",
+  "Capital Market Line":
+    "This lime line shows the strongest risk-return path when the risk-free asset is combined with the tangency portfolio.",
+  "Tangency portfolio":
+    "This orange point is the strongest risk-adjusted portfolio found in the simulation.",
+  "Your portfolio":
+    "This green point is your current mix of tickers and weights.",
+  "Risk-free":
+    "This white point is the starting point of the chart: a near-zero-risk return benchmark.",
+};
+
+function PortfolioLegend({
+  payload,
+}: {
+  payload?: Array<{ color?: string; dataKey?: string; type?: string; value?: string }>;
+}) {
+  if (!payload?.length) return null;
+
+  return (
+    <div className="portfolio-custom-legend" role="list" aria-label="Portfolio chart legend">
+      {payload.map((entry) => {
+        const label = entry.value ?? "";
+        const help = PORTFOLIO_LEGEND_HELP[label];
+        const isLine = label === "Efficient frontier" || label === "Capital Market Line";
+        return (
+          <div key={label} className="portfolio-legend-item" role="listitem">
+            <span
+              className={`portfolio-legend-swatch ${isLine ? "line" : "dot"}`}
+              style={entry.color ? { ["--legend-color" as string]: entry.color } : undefined}
+              aria-hidden="true"
+            />
+            <span>{label}</span>
+            {help ? (
+              <span className="info-tooltip portfolio-legend-help" tabIndex={0}>
+                ?
+                <span className="info-tooltip-card">{help}</span>
+              </span>
+            ) : null}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) {
   const [portfolioAssets, setPortfolioAssets] = useState<PortfolioAssetInput[]>([
     { ticker: "AAPL", weight: 34 },
@@ -826,7 +875,7 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
                 domain={["auto", "auto"]}
               />
               <Tooltip content={<PortfolioTooltip />} />
-              <Legend />
+              <Legend content={<PortfolioLegend />} />
 
               {showRandom ? (
                 <Scatter

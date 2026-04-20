@@ -3003,6 +3003,63 @@ select {
   transform: translate(-50%, 0);
 }
 
+.portfolio-custom-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px 16px;
+  margin-top: 14px;
+  padding: 0 12px;
+}
+
+.portfolio-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #dbe4f5;
+  font-size: 0.95rem;
+  line-height: 1.2;
+}
+
+.portfolio-legend-swatch {
+  --legend-color: #94a3b8;
+  flex: 0 0 auto;
+}
+
+.portfolio-legend-swatch.dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--legend-color);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.portfolio-legend-swatch.line {
+  width: 18px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--legend-color);
+}
+
+.portfolio-legend-help {
+  width: 16px;
+  height: 16px;
+  font-size: 0.64rem;
+}
+
+.portfolio-legend-help .info-tooltip-card {
+  top: calc(100% + 12px);
+  left: 50%;
+  width: min(300px, 72vw);
+  transform: translate(-50%, 4px);
+  text-align: left;
+}
+
+.portfolio-legend-help:hover .info-tooltip-card,
+.portfolio-legend-help:focus-visible .info-tooltip-card {
+  transform: translate(-50%, 0);
+}
+
 .portfolio-summary-card .portfolio-summary-label {
   display: inline-flex;
   align-items: center;
