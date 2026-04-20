@@ -2638,11 +2638,11 @@ export default function ExplorePage() {
 
                         <div className="risk-summary-card">
                           <div className="risk-summary-header">
-                            <strong>Top 3 Companies In Segment</strong>
+                            <strong>Comparison</strong>
                             <span className="map-chip">Global {activeGlobalSegment.segment}</span>
                           </div>
                           <p className="risk-summary-copy">
-                            Cross-market view for {activeGlobalSegment.segment.toLowerCase()} across all tracked countries.
+                            Cross-market view for {activeGlobalSegment.segment.toLowerCase()} across all tracked countries. Select up to three names to compare.
                           </p>
                           <div className="comparison-grid">
                             {activeGlobalSegment.companies.map((company) => (
@@ -2690,30 +2690,32 @@ export default function ExplorePage() {
                               </button>
                             ))}
                           </div>
-                        </div>
-
-                        <div className="risk-summary-card">
-                          <div className="risk-summary-header">
-                            <strong>Comparison</strong>
-                            <span className="map-chip">Up to 3 companies</span>
-                          </div>
                           {comparisonCompanies.length > 0 ? (
-                            <div className="comparison-grid">
-                              {comparisonCompanies.map((company) => (
-                                <div key={company.ticker} className="comparison-card">
-                                  <span>{regionLabels[(company as typeof company & { country?: Exclude<RegionCode, BaseRegion> }).country ?? selectedStructureCountry]}</span>
-                                  <strong>{company.name}</strong>
-                                  <small>{company.segment}</small>
-                                  <small>{formatMarketCapUsd(company.marketCap)}</small>
-                                  <small>ROI {company.roi1Y}%</small>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <p className="risk-summary-copy">
-                              Pick up to three companies inside this segment to compare them side by side.
-                            </p>
-                          )}
+                            <>
+                              <div className="structure-panel-header structure-panel-subheader">
+                                <strong>Selected for comparison</strong>
+                                <span>{comparisonCompanies.length}/3</span>
+                              </div>
+                              <div className="comparison-grid">
+                                {comparisonCompanies.map((company) => (
+                                  <div key={company.ticker} className="comparison-card">
+                                    <span>
+                                      {
+                                        regionLabels[
+                                          (company as typeof company & { country?: Exclude<RegionCode, BaseRegion> }).country ??
+                                            selectedStructureCountry
+                                        ]
+                                      }
+                                    </span>
+                                    <strong>{company.name}</strong>
+                                    <small>{company.segment}</small>
+                                    <small>{formatMarketCapUsd(company.marketCap)}</small>
+                                    <small>ROI {company.roi1Y}%</small>
+                                  </div>
+                                ))}
+                              </div>
+                            </>
+                          ) : null}
                         </div>
                       </>
                     ) : (

@@ -1944,6 +1944,10 @@ select {
   gap: 10px;
 }
 
+.structure-panel-subheader {
+  margin-top: 14px;
+}
+
 .trend-pill {
   border-radius: 999px;
   padding: 6px 10px;
@@ -2500,14 +2504,24 @@ select {
 
 .portfolio-asset-row {
   display: grid;
-  grid-template-columns: 52px minmax(0, 1.4fr) 136px auto;
-  gap: 10px;
-  align-items: end;
+  grid-template-columns: 52px minmax(0, 1.4fr) 136px 112px;
+  gap: 0;
+  align-items: stretch;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.03);
+  overflow: hidden;
 }
 
 .portfolio-asset-field {
   display: grid;
   gap: 6px;
+}
+
+.portfolio-asset-cell {
+  min-width: 0;
+  padding: 10px 12px;
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .portfolio-asset-label {
@@ -2523,10 +2537,10 @@ select {
   align-items: center;
   justify-content: center;
   align-self: stretch;
+  width: 52px;
   min-height: 100%;
-  border: 1px solid rgba(125, 211, 252, 0.18);
-  border-radius: 16px;
-  background: rgba(56, 189, 248, 0.08);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(56, 189, 248, 0.1);
   color: #dbeafe;
   font-size: 0.8rem;
   font-weight: 800;
@@ -2536,11 +2550,11 @@ select {
 .portfolio-asset-row input,
 .portfolio-add-row input {
   width: 100%;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.04);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: var(--text);
-  padding: 11px 13px;
+  padding: 0;
   transition:
     border-color 0.18s ease,
     box-shadow 0.18s ease,
@@ -2577,9 +2591,8 @@ select {
 .portfolio-asset-row input:focus,
 .portfolio-add-row input:focus {
   outline: none;
-  border-color: rgba(79, 142, 247, 0.42);
-  box-shadow: 0 0 0 4px rgba(79, 142, 247, 0.12);
-  background: rgba(255, 255, 255, 0.055);
+  box-shadow: none;
+  background: transparent;
 }
 
 .portfolio-ghost-button,
@@ -2601,8 +2614,13 @@ select {
 
 .portfolio-ghost-button {
   min-width: 102px;
-  align-self: end;
+  align-self: stretch;
   font-weight: 700;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .portfolio-primary-button {
@@ -2694,6 +2712,12 @@ select {
 .portfolio-check-row.active .portfolio-check-box {
   background: #d9ff3f;
   box-shadow: 0 0 0 4px rgba(217, 255, 63, 0.1);
+}
+
+.portfolio-asset-action {
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
 }
 
 .portfolio-toggle-help {
@@ -4220,6 +4244,11 @@ select {
     grid-template-columns: 48px minmax(0, 1fr);
   }
 
+  .portfolio-asset-cell {
+    border-left: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
   .portfolio-asset-weight-field,
   .portfolio-ghost-button {
     grid-column: 2;
@@ -4303,6 +4332,18 @@ select {
   .portfolio-asset-row,
   .portfolio-add-row {
     grid-template-columns: 1fr;
+  }
+
+  .portfolio-asset-index {
+    width: 100%;
+    min-height: 44px;
+    border-right: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .portfolio-asset-cell {
+    border-left: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
   }
 
   .stock-page-shell {

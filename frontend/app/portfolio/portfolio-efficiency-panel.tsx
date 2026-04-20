@@ -628,7 +628,7 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
                 <div className="portfolio-asset-index" aria-hidden="true">
                   {String(index + 1).padStart(2, "0")}
                 </div>
-                <label className="portfolio-asset-field portfolio-asset-ticker-field">
+                <label className="portfolio-asset-field portfolio-asset-ticker-field portfolio-asset-cell">
                   <span className="portfolio-asset-label">Ticker</span>
                   <input
                     value={asset.ticker}
@@ -636,7 +636,7 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
                     placeholder="Ticker"
                   />
                 </label>
-                <label className="portfolio-asset-field portfolio-asset-weight-field">
+                <label className="portfolio-asset-field portfolio-asset-weight-field portfolio-asset-cell">
                   <span className="portfolio-asset-label">Weight (%)</span>
                   <div className="portfolio-weight-input-wrap">
                     <input
@@ -649,9 +649,11 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
                     <span className="portfolio-weight-unit">%</span>
                   </div>
                 </label>
-                <button type="button" className="portfolio-ghost-button" onClick={() => removeTicker(index)}>
-                  Remove
-                </button>
+                <div className="portfolio-asset-action portfolio-asset-cell">
+                  <button type="button" className="portfolio-ghost-button" onClick={() => removeTicker(index)}>
+                    Remove
+                  </button>
+                </div>
               </div>
             ))}
           </div>
