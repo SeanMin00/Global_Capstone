@@ -2958,74 +2958,111 @@ export default function ExplorePage() {
                     </section>
 
                     <aside className="profile-summary-panel">
-                      <div className="profile-report-card">
-                        <div className="profile-preview-pill">
-                          {humanizeProfileValue(profilePreferences.investmentGoal)}
-                        </div>
-                        <div className="profile-report-header">
-                          <h3>{profileTitle}</h3>
-                          <p>{profileSummary}</p>
-                        </div>
-
-                        <div className="profile-report-signals" data-tour="profile-signal-bars">
-                          <div className="profile-signal-row">
-                            <span>Expected return</span>
-                            <div className="profile-signal-bar">
-                              <div
-                                className="profile-signal-fill signal-blue"
-                                style={{ width: profileSignalWidth(expectedReturnSignal, 100) }}
-                              />
-                            </div>
-                            <strong>{profileLevelLabel(expectedReturnSignal)}</strong>
-                          </div>
-                          <div className="profile-signal-row">
-                            <span>Drawdown tolerance</span>
-                            <div className="profile-signal-bar">
-                              <div
-                                className="profile-signal-fill signal-orange"
-                                style={{ width: profileSignalWidth(volatilitySignal, 100) }}
-                              />
-                            </div>
-                            <strong>{profileLevelLabel(volatilitySignal)}</strong>
-                          </div>
-                          <div className="profile-signal-row">
-                            <span>Diversification need</span>
-                            <div className="profile-signal-bar">
-                              <div
-                                className="profile-signal-fill signal-green"
-                                style={{ width: profileSignalWidth(diversificationSignal, 100) }}
-                              />
-                            </div>
-                            <strong>{profileLevelLabel(diversificationSignal)}</strong>
-                          </div>
-                        </div>
-
-                        <div className="profile-report-block">
-                          <div className="profile-report-dot blue" />
-                          <div>
-                            <strong>Suggested allocation</strong>
-                            <p>{suggestedMix} can fit this profile.</p>
-                          </div>
-                        </div>
-
-                        <div className="profile-report-block">
-                          <div className="profile-report-dot orange" />
-                          <div>
-                            <strong>Loss scenario</strong>
+                      {profileStep === "login" ? (
+                        <div className="profile-preview-card">
+                          <div className="profile-preview-header">
+                            <p className="eyebrow">Get started</p>
+                            <h3>Sign in to build your investor profile</h3>
                             <p>
-                              A temporary drawdown of {profilePreferences.lossTolerance}% is within the selected comfort range.
+                              Enter a name or email first. We will unlock the strategy, risk, and portfolio guidance after
+                              you move to the next step.
                             </p>
                           </div>
-                        </div>
 
-                        <div className="profile-report-block">
-                          <div className="profile-report-dot green" />
-                          <div>
-                            <strong>Rebalancing rhythm</strong>
-                            <p>{rebalanceLabel}.</p>
+                          <div className="profile-report-block">
+                            <div className="profile-report-dot blue" />
+                            <div>
+                              <strong>Basic access</strong>
+                              <p>Use any lightweight profile details to continue. This flow is still frontend-only for now.</p>
+                            </div>
+                          </div>
+
+                          <div className="profile-report-block">
+                            <div className="profile-report-dot orange" />
+                            <div>
+                              <strong>What comes next</strong>
+                              <p>Next we will ask about goal, time horizon, risk aversion, and loss tolerance.</p>
+                            </div>
+                          </div>
+
+                          <div className="profile-report-block">
+                            <div className="profile-report-dot green" />
+                            <div>
+                              <strong>Why it matters</strong>
+                              <p>Your portfolio, map guidance, and efficiency analysis will adapt to the profile you set.</p>
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="profile-report-card">
+                          <div className="profile-preview-pill">
+                            {humanizeProfileValue(profilePreferences.investmentGoal)}
+                          </div>
+                          <div className="profile-report-header">
+                            <h3>{profileTitle}</h3>
+                            <p>{profileSummary}</p>
+                          </div>
+
+                          <div className="profile-report-signals" data-tour="profile-signal-bars">
+                            <div className="profile-signal-row">
+                              <span>Expected return</span>
+                              <div className="profile-signal-bar">
+                                <div
+                                  className="profile-signal-fill signal-blue"
+                                  style={{ width: profileSignalWidth(expectedReturnSignal, 100) }}
+                                />
+                              </div>
+                              <strong>{profileLevelLabel(expectedReturnSignal)}</strong>
+                            </div>
+                            <div className="profile-signal-row">
+                              <span>Drawdown tolerance</span>
+                              <div className="profile-signal-bar">
+                                <div
+                                  className="profile-signal-fill signal-orange"
+                                  style={{ width: profileSignalWidth(volatilitySignal, 100) }}
+                                />
+                              </div>
+                              <strong>{profileLevelLabel(volatilitySignal)}</strong>
+                            </div>
+                            <div className="profile-signal-row">
+                              <span>Diversification need</span>
+                              <div className="profile-signal-bar">
+                                <div
+                                  className="profile-signal-fill signal-green"
+                                  style={{ width: profileSignalWidth(diversificationSignal, 100) }}
+                                />
+                              </div>
+                              <strong>{profileLevelLabel(diversificationSignal)}</strong>
+                            </div>
+                          </div>
+
+                          <div className="profile-report-block">
+                            <div className="profile-report-dot blue" />
+                            <div>
+                              <strong>Suggested allocation</strong>
+                              <p>{suggestedMix} can fit this profile.</p>
+                            </div>
+                          </div>
+
+                          <div className="profile-report-block">
+                            <div className="profile-report-dot orange" />
+                            <div>
+                              <strong>Loss scenario</strong>
+                              <p>
+                                A temporary drawdown of {profilePreferences.lossTolerance}% is within the selected comfort range.
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="profile-report-block">
+                            <div className="profile-report-dot green" />
+                            <div>
+                              <strong>Rebalancing rhythm</strong>
+                              <p>{rebalanceLabel}.</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </aside>
                   </div>
 

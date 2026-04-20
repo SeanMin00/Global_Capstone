@@ -2350,7 +2350,7 @@ select {
 
 .portfolio-builder-shell {
   display: grid;
-  gap: 20px;
+  gap: 16px;
 }
 
 .portfolio-builder-header,
@@ -2358,21 +2358,22 @@ select {
 .portfolio-section-header {
   display: flex;
   justify-content: space-between;
-  gap: 18px;
+  gap: 14px;
   align-items: flex-start;
 }
 
 .portfolio-builder-header h2,
 .portfolio-chart-header h3 {
   margin: 8px 0 0;
-  font-size: clamp(1.9rem, 3.6vw, 2.65rem);
+  font-size: clamp(1.78rem, 3.2vw, 2.42rem);
   line-height: 1.02;
 }
 
 .portfolio-copy {
   max-width: 780px;
   color: var(--muted);
-  line-height: 1.75;
+  line-height: 1.68;
+  font-size: 0.96rem;
 }
 
 .portfolio-header-chips {
@@ -2434,12 +2435,12 @@ select {
 .portfolio-builder-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.14fr) minmax(310px, 0.72fr);
-  gap: 20px;
+  gap: 16px;
 }
 
 .portfolio-side-stack {
   display: grid;
-  gap: 14px;
+  gap: 12px;
 }
 
 .portfolio-input-panel,
@@ -2450,10 +2451,10 @@ select {
   position: relative;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 28px;
+  border-radius: 24px;
   background:
     linear-gradient(180deg, rgba(20, 26, 37, 0.96), rgba(12, 17, 27, 0.96));
-  padding: 22px;
+  padding: 18px;
   box-shadow: 0 18px 38px rgba(0, 0, 0, 0.24);
   backdrop-filter: blur(18px);
 }
@@ -2471,47 +2472,47 @@ select {
 }
 
 .portfolio-section-header strong {
-  font-size: 1.02rem;
+  font-size: 0.98rem;
   color: #f8fafc;
 }
 
 .portfolio-section-header > div {
   display: grid;
-  gap: 5px;
+  gap: 3px;
 }
 
 .portfolio-section-header span {
   color: var(--muted);
-  font-size: 0.88rem;
+  font-size: 0.84rem;
 }
 
 .portfolio-section-total {
-  font-size: 1.16rem;
+  font-size: 1.08rem;
   color: #f8fafc;
   font-weight: 700;
 }
 
 .portfolio-asset-list {
   display: grid;
-  gap: 12px;
-  margin-top: 18px;
+  gap: 10px;
+  margin-top: 14px;
 }
 
 .portfolio-asset-row {
   display: grid;
-  grid-template-columns: 56px minmax(0, 1.4fr) 150px auto;
-  gap: 12px;
+  grid-template-columns: 52px minmax(0, 1.4fr) 136px auto;
+  gap: 10px;
   align-items: end;
 }
 
 .portfolio-asset-field {
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
 .portfolio-asset-label {
   color: #93a6c5;
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -2524,10 +2525,10 @@ select {
   align-self: stretch;
   min-height: 100%;
   border: 1px solid rgba(125, 211, 252, 0.18);
-  border-radius: 18px;
+  border-radius: 16px;
   background: rgba(56, 189, 248, 0.08);
   color: #dbeafe;
-  font-size: 0.84rem;
+  font-size: 0.8rem;
   font-weight: 800;
   letter-spacing: 0.06em;
 }
@@ -2536,10 +2537,10 @@ select {
 .portfolio-add-row input {
   width: 100%;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
+  border-radius: 14px;
   background: rgba(255, 255, 255, 0.04);
   color: var(--text);
-  padding: 13px 14px;
+  padding: 11px 13px;
   transition:
     border-color 0.18s ease,
     box-shadow 0.18s ease,
@@ -2547,7 +2548,7 @@ select {
 }
 
 .portfolio-asset-ticker-field input {
-  font-size: 1.06rem;
+  font-size: 1rem;
   font-weight: 700;
 }
 
@@ -2558,7 +2559,7 @@ select {
 .portfolio-asset-weight-field input {
   padding-right: 38px;
   text-align: right;
-  font-size: 1.02rem;
+  font-size: 0.98rem;
   font-weight: 700;
 }
 
@@ -2568,7 +2569,7 @@ select {
   top: 50%;
   transform: translateY(-50%);
   color: #93a6c5;
-  font-size: 0.92rem;
+  font-size: 0.88rem;
   font-weight: 700;
   pointer-events: none;
 }
@@ -2586,10 +2587,10 @@ select {
 .portfolio-chip-button,
 .portfolio-toggle {
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
+  border-radius: 14px;
   background: rgba(255, 255, 255, 0.03);
   color: #dbeafe;
-  padding: 12px 14px;
+  padding: 10px 13px;
   cursor: pointer;
   transition:
     transform 0.18s ease,
@@ -2599,7 +2600,7 @@ select {
 }
 
 .portfolio-ghost-button {
-  min-width: 112px;
+  min-width: 102px;
   align-self: end;
   font-weight: 700;
 }
@@ -2615,27 +2616,28 @@ select {
 .portfolio-add-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 12px;
-  margin-top: 16px;
+  gap: 10px;
+  margin-top: 14px;
 }
 
 .portfolio-featured-row,
 .portfolio-weight-chip-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 
 .portfolio-featured-row {
-  margin-top: 14px;
+  margin-top: 12px;
 }
 
 .portfolio-chip-button,
 .portfolio-toggle {
   border-radius: 999px;
-  padding: 9px 13px;
+  padding: 8px 12px;
 }
 
+.portfolio-check-row,
 .portfolio-toggle {
   display: inline-flex;
   align-items: center;
@@ -2643,6 +2645,55 @@ select {
   gap: 8px;
   width: 100%;
   background: rgba(255, 255, 255, 0.025);
+}
+
+.portfolio-check-row {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  padding: 8px 12px;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    background 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.portfolio-check-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+  font-weight: 700;
+  color: #efffb8;
+  font-size: 0.96rem;
+}
+
+.portfolio-check-main input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.portfolio-check-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  border-radius: 5px;
+  border: 1px solid rgba(217, 255, 63, 0.28);
+  background: rgba(255, 255, 255, 0.04);
+  color: #101826;
+  font-size: 0.68rem;
+  font-weight: 900;
+  flex-shrink: 0;
+}
+
+.portfolio-check-row.active .portfolio-check-box {
+  background: #d9ff3f;
+  box-shadow: 0 0 0 4px rgba(217, 255, 63, 0.1);
 }
 
 .portfolio-toggle-help {
@@ -2720,6 +2771,7 @@ select {
 }
 
 .portfolio-toggle.active,
+.portfolio-check-row.active,
 .portfolio-chip-button:hover {
   border-color: rgba(217, 255, 63, 0.26);
   background: rgba(217, 255, 63, 0.1);
@@ -2729,6 +2781,7 @@ select {
 
 .portfolio-ghost-button:hover,
 .portfolio-primary-button:hover,
+.portfolio-check-row:hover,
 .portfolio-toggle:hover {
   transform: translateY(-1px);
 }
@@ -2738,9 +2791,9 @@ select {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-top: 18px;
+  margin-top: 14px;
   color: var(--muted);
-  font-size: 0.88rem;
+  font-size: 0.84rem;
 }
 
 .portfolio-input-note strong {
@@ -2760,17 +2813,17 @@ select {
 
 .portfolio-warning-card {
   border: 1px solid rgba(245, 158, 11, 0.18);
-  border-radius: 18px;
+  border-radius: 16px;
   background: rgba(245, 158, 11, 0.08);
-  padding: 14px 16px;
+  padding: 12px 14px;
 }
 
 .portfolio-context-grid,
 .portfolio-summary-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 18px;
+  gap: 10px;
+  margin-top: 14px;
 }
 
 .portfolio-context-card-wide {
@@ -2779,12 +2832,12 @@ select {
 
 .portfolio-analysis-panel {
   display: grid;
-  gap: 18px;
+  gap: 14px;
 }
 
 .portfolio-analysis-options {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .portfolio-analysis-footer {
@@ -2792,26 +2845,26 @@ select {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding-top: 10px;
+  padding-top: 8px;
   color: var(--muted);
-  font-size: 0.82rem;
+  font-size: 0.79rem;
   border-top: 1px solid rgba(255, 255, 255, 0.07);
 }
 
 .portfolio-context-card,
 .portfolio-summary-card {
   border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 22px;
+  border-radius: 18px;
   background: rgba(255, 255, 255, 0.035);
-  padding: 16px;
+  padding: 14px;
 }
 
 .portfolio-context-card span,
 .portfolio-summary-card span {
   display: block;
   color: var(--muted);
-  margin-bottom: 8px;
-  font-size: 0.82rem;
+  margin-bottom: 6px;
+  font-size: 0.78rem;
   letter-spacing: 0.02em;
 }
 

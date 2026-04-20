@@ -722,33 +722,51 @@ export default function PortfolioEfficiencyPanel({ profilePreferences }: Props) 
             </div>
 
             <div className="portfolio-analysis-options">
-              <button
-                type="button"
-                className={`portfolio-toggle ${showRandom ? "active" : ""}`}
-                onClick={() => setShowRandom((current) => !current)}
-              >
-                <span>Show Random Portfolios</span>
+              <div className={`portfolio-check-row ${showRandom ? "active" : ""}`}>
+                <label className="portfolio-check-main">
+                  <input
+                    type="checkbox"
+                    checked={showRandom}
+                    onChange={(event) => setShowRandom(event.target.checked)}
+                  />
+                  <span className="portfolio-check-box" aria-hidden="true">
+                    {showRandom ? "✓" : ""}
+                  </span>
+                  <span>Show Random Portfolios</span>
+                </label>
                 <RandomPortfolioHelp />
-              </button>
-              <button
-                type="button"
-                className={`portfolio-toggle ${showFrontier ? "active" : ""}`}
-                onClick={() => setShowFrontier((current) => !current)}
-              >
-                <span>Show Frontier</span>
+              </div>
+              <div className={`portfolio-check-row ${showFrontier ? "active" : ""}`}>
+                <label className="portfolio-check-main">
+                  <input
+                    type="checkbox"
+                    checked={showFrontier}
+                    onChange={(event) => setShowFrontier(event.target.checked)}
+                  />
+                  <span className="portfolio-check-box" aria-hidden="true">
+                    {showFrontier ? "✓" : ""}
+                  </span>
+                  <span>Show Frontier</span>
+                </label>
                 <ToggleHelp>
                   The frontier highlights the best simulated portfolios for each risk level. Points below it may be taking
                   more risk than needed for their expected return.
                 </ToggleHelp>
-              </button>
-              <button
-                type="button"
-                className={`portfolio-toggle ${showCml ? "active" : ""}`}
-                onClick={() => setShowCml((current) => !current)}
-              >
-                <span>Show CML</span>
+              </div>
+              <div className={`portfolio-check-row ${showCml ? "active" : ""}`}>
+                <label className="portfolio-check-main">
+                  <input
+                    type="checkbox"
+                    checked={showCml}
+                    onChange={(event) => setShowCml(event.target.checked)}
+                  />
+                  <span className="portfolio-check-box" aria-hidden="true">
+                    {showCml ? "✓" : ""}
+                  </span>
+                  <span>Show CML</span>
+                </label>
                 <CmlHelp />
-              </button>
+              </div>
             </div>
 
             <div className="portfolio-analysis-footer">
