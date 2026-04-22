@@ -8,7 +8,7 @@ import { buildApiUrl, fetchQuote, type QuoteResponse } from "../stocks/stock-api
 import PortfolioEfficiencyPanel from "../portfolio/portfolio-efficiency-panel";
 import TourOverlay from "../../components/Tour/TourOverlay";
 import TourProvider from "../../components/Tour/TourProvider";
-import { tourSteps, type TourStep } from "../../components/Tour/tourSteps";
+import { tourSteps, type TourScope, type TourStep } from "../../components/Tour/tourSteps";
 import { useTour } from "../../components/Tour/useTour";
 
 type RegionArticle = {
@@ -1054,11 +1054,20 @@ const railItems: { key: ViewMode; label: string }[] = [
   { key: "personal", label: "Profile" },
 ];
 
-function HeroTourButton() {
+function viewModeTourScope(viewMode: ViewMode): TourScope {
+  if (viewMode === "personal") return "profile";
+  return viewMode;
+}
+
+function HeroTourButton({ viewMode }: { viewMode: ViewMode }) {
   const { start } = useTour();
 
   return (
-    <button type="button" className="tour-launch-button" onClick={() => start(true)}>
+    <button
+      type="button"
+      className="tour-launch-button"
+      onClick={() => start({ force: true, scope: viewModeTourScope(viewMode) })}
+    >
       <span className="tour-launch-icon">?</span>
       Tour
     </button>
@@ -1788,7 +1797,7 @@ export default function ExplorePage() {
               <p className="hero-copy">{viewModeCopy(viewMode)}</p>
             </div>
             <div className="hero-actions">
-              <HeroTourButton />
+              <HeroTourButton viewMode={viewMode} />
             </div>
           </header>
 

@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { TOUR_PENDING_KEY, type TourScope } from "../components/Tour/tourSteps";
 
 const landingModes = {
   investors: {
@@ -34,7 +36,19 @@ const tickerTape = [
 
 export default function HomePage() {
   const [mode, setMode] = useState<LandingMode>("investors");
+  const router = useRouter();
   const content = landingModes[mode];
+
+  const startTour = (scope: TourScope) => {
+    window.localStorage.setItem(
+      TOUR_PENDING_KEY,
+      JSON.stringify({
+        scope,
+        force: true,
+      }),
+    );
+    router.push("/explore");
+  };
 
   return (
     <main className="landing-shell">
@@ -85,10 +99,14 @@ export default function HomePage() {
           <Link href="/explore" className="landing-btn landing-btn-secondary">
             Explore Markets
           </Link>
-          <Link href="/explore" className="landing-btn landing-btn-primary">
+          <button
+            type="button"
+            className="landing-btn landing-btn-primary"
+            onClick={() => startTour("full")}
+          >
             Start the Tour
             <span aria-hidden="true">→</span>
-          </Link>
+          </button>
         </div>
 
         <div className="landing-stat-strip">

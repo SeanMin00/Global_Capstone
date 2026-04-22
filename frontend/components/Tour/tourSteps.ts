@@ -6,15 +6,20 @@ export interface TourStep {
   description: string;
   position: "top" | "bottom" | "left" | "right";
   page: string;
+  scope: Exclude<TourScope, "full">;
   spotlightPadding?: number;
 }
 
+export type TourScope = "full" | "profile" | "map" | "explorer" | "chart" | "pf";
+
 export const TOUR_COMPLETION_KEY = "global-capstone-tour-complete";
+export const TOUR_PENDING_KEY = "global-capstone-tour-pending";
 
 export const tourSteps: TourStep[] = [
   {
     targetSelector: '[data-tour="profile-preferences-flow"]',
     page: "/profile",
+    scope: "profile",
     title: "Start with strategy and risk setup",
     description:
       "Start by setting your investment goal, horizon, risk aversion, and loss tolerance. This gives the rest of the platform the right context.",
@@ -23,6 +28,7 @@ export const tourSteps: TourStep[] = [
   {
     targetSelector: '[data-tour="profile-signal-bars"]',
     page: "/profile",
+    scope: "profile",
     title: "Use the summary bars on the right",
     description:
       "These bars translate your profile into expected return, drawdown tolerance, and diversification need in a simpler visual format.",
@@ -31,6 +37,7 @@ export const tourSteps: TourStep[] = [
   {
     targetSelector: '[data-tour="map-region-tabs"]',
     page: "/map",
+    scope: "map",
     title: "Move across major regions",
     description:
       "Use Asia, North America, and Europe to switch the market context before you zoom into individual countries.",
@@ -39,6 +46,7 @@ export const tourSteps: TourStep[] = [
   {
     targetSelector: '[data-tour="map-world-stage"]',
     page: "/map",
+    scope: "map",
     title: "Use the map to explore countries",
     description:
       "Hover and click countries on the map to explore where market mood and regional opportunity look stronger or weaker.",
@@ -47,6 +55,7 @@ export const tourSteps: TourStep[] = [
   {
     targetSelector: '[data-tour="map-summary-sentiment"]',
     page: "/map",
+    scope: "map",
     title: "Read summary and sentiment together",
     description:
       "This block combines the news summary with the sentiment score, so you can quickly see what happened and whether the tone is positive or negative.",
@@ -55,6 +64,7 @@ export const tourSteps: TourStep[] = [
   {
     targetSelector: '[data-tour="map-risk-card"]',
     page: "/map",
+    scope: "map",
     title: "Open the market risk breakdown",
     description:
       "This card explains market risk with simple drivers like volatility, beta, and FX risk, so you can see why one market looks riskier than another.",
@@ -63,6 +73,7 @@ export const tourSteps: TourStep[] = [
   {
     targetSelector: '[data-tour="explorer-country-list"]',
     page: "/explorer-country",
+    scope: "explorer",
     title: "Compare markets in By Country",
     description:
       "By Country lets you compare one market at a time and inspect which industries are leading inside that market.",
@@ -71,6 +82,7 @@ export const tourSteps: TourStep[] = [
   {
     targetSelector: '[data-tour="explorer-global-segment-list"]',
     page: "/explorer-segment",
+    scope: "explorer",
     title: "Then switch to By Segment",
     description:
       "By Segment flips the view so you can compare the same industry theme across multiple markets.",
@@ -79,6 +91,7 @@ export const tourSteps: TourStep[] = [
   {
     targetSelector: '[data-tour="chart-workspace"]',
     page: "/chart",
+    scope: "chart",
     title: "Use the full chart workspace",
     description:
       "This area gives you a quick stock view with price trend, quote summary, and time range controls.",
@@ -87,6 +100,7 @@ export const tourSteps: TourStep[] = [
   {
     targetSelector: '[data-tour="chart-ticker-search"]',
     page: "/chart",
+    scope: "chart",
     title: "Search the ticker you want to test",
     description:
       "Search a ticker here to update the chart, quote, and side metrics for the company you want to inspect.",
@@ -95,6 +109,7 @@ export const tourSteps: TourStep[] = [
   {
     targetSelector: '[data-tour="pf-input-panel"]',
     page: "/pf",
+    scope: "pf",
     title: "Build the portfolio inputs first",
     description:
       "Choose the tickers and weights here. These inputs drive the portfolio chart and the efficiency analysis.",
@@ -103,6 +118,7 @@ export const tourSteps: TourStep[] = [
   {
     targetSelector: '[data-tour="pf-cml-chart"]',
     page: "/pf",
+    scope: "pf",
     title: "Then read the portfolio chart",
     description:
       "Use the CML chart to see where your portfolio sits against random portfolios, the efficient frontier, and the capital market line.",
@@ -111,6 +127,7 @@ export const tourSteps: TourStep[] = [
   {
     targetSelector: '[data-tour="pf-portfolio-compare"]',
     page: "/pf",
+    scope: "pf",
     title: "Compare your portfolio with the optimal one",
     description:
       "This final block compares your current allocation with the tangency portfolio, so you can quickly see return, volatility, and Sharpe differences.",
@@ -119,9 +136,18 @@ export const tourSteps: TourStep[] = [
   {
     targetSelector: '[data-tour="pf-beginner-readout"]',
     page: "/pf",
+    scope: "pf",
     title: "Finish with the beginner-friendly readout",
     description:
       "This summary translates the chart into plain language so you can understand whether your portfolio looks efficient or needs adjustment.",
     position: "left",
   },
 ];
+
+export function filterTourStepsByScope(steps: TourStep[], scope: TourScope) {
+  if (scope === "full") {
+    return steps;
+  }
+
+  return steps.filter((step) => step.scope === scope);
+}

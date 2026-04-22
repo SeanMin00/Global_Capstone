@@ -1,14 +1,20 @@
 "use client";
 
 import { createContext, useContext } from "react";
-import type { TourStep } from "./tourSteps";
+import type { TourScope, TourStep } from "./tourSteps";
+
+export type TourStartOptions = {
+  force?: boolean;
+  scope?: TourScope;
+};
 
 export type TourContextValue = {
   steps: TourStep[];
   isActive: boolean;
   currentStepIndex: number;
   currentStep: TourStep | null;
-  start: (force?: boolean) => void;
+  activeScope: TourScope;
+  start: (options?: TourStartOptions) => void;
   next: () => void;
   skip: () => void;
 };
