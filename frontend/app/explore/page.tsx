@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import SentimentWorldMap from "../sentiment-world-map";
 import StockDetailView from "../stocks/stock-detail-view";
@@ -979,7 +980,7 @@ function buildAggregatedRiskSnapshot(
   };
 }
 
-function RailIcon({ viewMode }: { viewMode: ViewMode }) {
+function RailIcon({ viewMode }: { viewMode: ViewMode | "home" }) {
   const commonProps = {
     viewBox: "0 0 24 24",
     fill: "none",
@@ -988,6 +989,16 @@ function RailIcon({ viewMode }: { viewMode: ViewMode }) {
     strokeLinecap: "round" as const,
     strokeLinejoin: "round" as const,
   };
+
+  if (viewMode === "home") {
+    return (
+      <svg {...commonProps} aria-hidden="true">
+        <path d="M4.5 10.5 12 4l7.5 6.5" />
+        <path d="M6.5 9.5V20h11V9.5" />
+        <path d="M9.5 20v-5.5h5V20" />
+      </svg>
+    );
+  }
 
   if (viewMode === "map") {
     return (
@@ -1039,7 +1050,6 @@ function RailIcon({ viewMode }: { viewMode: ViewMode }) {
 const railItems: { key: ViewMode; label: string }[] = [
   { key: "map", label: "Map" },
   { key: "explorer", label: "Explorer" },
-  { key: "chart", label: "Chart" },
   { key: "pf", label: "PF" },
   { key: "personal", label: "Profile" },
 ];
@@ -1078,7 +1088,7 @@ export default function ExplorePage() {
   const [selectedTicker, setSelectedTicker] = useState("ASML");
   const [selectedSector, setSelectedSector] = useState("Technology");
   const [viewMode, setViewMode] = useState<ViewMode>("map");
-  const [chartMode, setChartMode] = useState<ChartMode>("heatmap");
+  const [chartMode, setChartMode] = useState<ChartMode>("structure");
   const [structureViewMode, setStructureViewMode] = useState<StructureViewMode>("country");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -1167,6 +1177,7 @@ export default function ExplorePage() {
 
   useEffect(() => {
     if (viewMode === "explorer") {
+      setChartMode("structure");
       setMapFocusRegion(null);
       return;
     }
@@ -1747,6 +1758,12 @@ export default function ExplorePage() {
       <section className="explore-shell">
         <aside className="left-rail no-logo">
           <div className="rail-stack compact">
+            <Link href="/" className="rail-button rail-icon-button rail-home-link" aria-label="Home">
+              <span className="rail-button-icon">
+                <RailIcon viewMode="home" />
+              </span>
+              <span className="rail-hover-label">Home</span>
+            </Link>
             {railItems.map((item) => (
               <button
                 key={item.key}
@@ -2080,146 +2097,34 @@ export default function ExplorePage() {
                     <div className="map-header">
                       <div>
                         <p className="eyebrow">Explorer view</p>
-                        <h2>{chartMode === "heatmap" ? "Regional stock heatmap" : "Market structure explorer"}</h2>
-                      </div>
-                      <div className="chart-mode-toggle">
-                        <button
-                          type="button"
-                          className={`chart-mode-button ${chartMode === "heatmap" ? "active" : ""}`}
-                          onClick={() => setChartMode("heatmap")}
-                        >
-                          Heatmap
-                        </button>
-                        <button
-                          type="button"
-                          className={`chart-mode-button ${chartMode === "structure" ? "active" : ""}`}
-                          onClick={() => setChartMode("structure")}
-                        >
-                          Structure
-                        </button>
+                        <h2>Market structure explorer</h2>
                       </div>
                     </div>
 
-                    {chartMode === "structure" ? (
-                      <div className="structure-view-toggle">
-                        <button
-                          type="button"
-                          className={`structure-view-button ${structureViewMode === "country" ? "active" : ""}`}
-                          onClick={() => {
-                            setStructureViewMode("country");
-                            setCompareTickers([]);
-                          }}
-                        >
-                          By Country
-                        </button>
-                        <button
-                          type="button"
-                          className={`structure-view-button ${structureViewMode === "segment" ? "active" : ""}`}
-                          onClick={() => {
-                            setStructureViewMode("segment");
-                            setCompareTickers([]);
-                          }}
-                        >
-                          By Segment
-                        </button>
-                      </div>
-                    ) : null}
+                    <div className="structure-view-toggle">
+                      <button
+                        type="button"
+                        className={`structure-view-button ${structureViewMode === "country" ? "active" : ""}`}
+                        onClick={() => {
+                          setStructureViewMode("country");
+                          setCompareTickers([]);
+                        }}
+                      >
+                        By Country
+                      </button>
+                      <button
+                        type="button"
+                        className={`structure-view-button ${structureViewMode === "segment" ? "active" : ""}`}
+                        onClick={() => {
+                          setStructureViewMode("segment");
+                          setCompareTickers([]);
+                        }}
+                      >
+                        By Segment
+                      </button>
+                    </div>
 
-                    {chartMode === "heatmap" ? (
-                      <div className="chart-shell">
-                        <aside className="sector-rail">
-                          <button
-                            type="button"
-                            className={`sector-link ${selectedSector === "All" ? "active" : ""}`}
-                            onClick={() => setSelectedSector("All")}
-                          >
-                            All
-                          </button>
-                          {sortedSectors.map((sector) => (
-                            <button
-                              key={sector}
-                              type="button"
-                              className={`sector-link ${selectedSector === sector ? "active" : ""}`}
-                              onClick={() => setSelectedSector(sector)}
-                            >
-                              {sector}
-                              <span className="sector-cap">
-                                {formatMarketCapBillions(
-                                  regionStocks
-                                    .filter((stock) => stock.sector === sector)
-                                    .reduce((sum, stock) => sum + stock.marketCap, 0),
-                                )}
-                              </span>
-                            </button>
-                          ))}
-                        </aside>
-
-                        <div
-                          className="heatmap-stage"
-                          data-tour={viewMode === "explorer" && chartMode === "heatmap" ? "explorer-heatmap-stage" : undefined}
-                        >
-                          <div className="heatmap-grid">
-                            {filteredRegionStocks.map((stock) => (
-                              <button
-                                key={stock.ticker}
-                                type="button"
-                                className={`heat-tile ${stockToneClass(stock.change)} ${stockSizeClass(stock.size)} ${
-                                  activeStock?.ticker === stock.ticker ? "selected" : ""
-                                }`}
-                                onClick={() => setSelectedTicker(stock.ticker)}
-                                onMouseEnter={() => {
-                                  setHoveredTicker(stock.ticker);
-                                  void loadQuotePreview(stock.ticker);
-                                }}
-                                onMouseLeave={() =>
-                                  setHoveredTicker((current) => (current === stock.ticker ? null : current))
-                                }
-                                onFocus={() => {
-                                  setHoveredTicker(stock.ticker);
-                                  void loadQuotePreview(stock.ticker);
-                                }}
-                                onBlur={() =>
-                                  setHoveredTicker((current) => (current === stock.ticker ? null : current))
-                                }
-                              >
-                                <div className="heat-tile-head">
-                                  <span className="heat-ticker">{stock.ticker}</span>
-                                  <span
-                                    className="card-chart-link"
-                                    onClick={(event) => {
-                                      event.stopPropagation();
-                                      openTickerInChart(stock.ticker);
-                                    }}
-                                  >
-                                    Open chart
-                                  </span>
-                                </div>
-                                {hoveredTicker === stock.ticker ? (
-                                  <div className="ticker-hover-badge">
-                                    {quotePreviewLoading[stock.ticker]
-                                      ? "Loading price..."
-                                      : quotePreviewCache[stock.ticker]
-                                        ? `${formatPreviewPrice(
-                                            quotePreviewCache[stock.ticker]?.current_price,
-                                            quotePreviewCache[stock.ticker]?.currency,
-                                          )} · ${
-                                            (quotePreviewCache[stock.ticker]?.day_change_pct ?? 0) > 0 ? "+" : ""
-                                          }${(quotePreviewCache[stock.ticker]?.day_change_pct ?? 0).toFixed(2)}%`
-                                        : "Price unavailable"}
-                                  </div>
-                                ) : null}
-                                <span className="heat-name">{stock.name}</span>
-                                <span className="heat-sector">{stock.sector}</span>
-                                <strong className="heat-change">
-                                  {stock.change > 0 ? "+" : ""}
-                                  {stock.change.toFixed(2)}%
-                                </strong>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    ) : structureViewMode === "country" ? (
+                    {structureViewMode === "country" ? (
                       <div className="structure-shell">
                         <aside className="structure-column">
                           <div className="structure-column-header">
@@ -2354,25 +2259,53 @@ export default function ExplorePage() {
 
                               <div className="structure-segment-grid structure-company-grid">
                                 {activeGlobalSegment.companies.map((company) => (
-                                  <button
-                                    key={company.ticker}
-                                    type="button"
-                                    className={`structure-segment-card structure-company-card ${
-                                      compareTickers.includes(company.ticker) ? "active" : ""
-                                    }`}
-                                    onClick={() => toggleCompareTicker(company.ticker)}
-                                  >
-                                    <div className="structure-segment-top">
-                                      <strong>{company.name}</strong>
-                                      <span>{regionLabels[company.country]}</span>
-                                    </div>
-                                    <div className="structure-metric-row">
-                                      <span>Ticker</span>
-                                      <strong>{company.ticker}</strong>
-                                    </div>
-                                    <div className="structure-metric-row">
-                                      <span>Market Cap</span>
-                                      <strong>{formatMarketCapUsd(company.marketCap)}</strong>
+                              <button
+                                key={company.ticker}
+                                type="button"
+                                className={`structure-segment-card structure-company-card ${
+                                  compareTickers.includes(company.ticker) ? "active" : ""
+                                }`}
+                                onClick={() => toggleCompareTicker(company.ticker)}
+                                onMouseEnter={() => {
+                                  setHoveredTicker(company.ticker);
+                                  void loadQuotePreview(company.ticker);
+                                }}
+                                onMouseLeave={() =>
+                                  setHoveredTicker((current) => (current === company.ticker ? null : current))
+                                }
+                                onFocus={() => {
+                                  setHoveredTicker(company.ticker);
+                                  void loadQuotePreview(company.ticker);
+                                }}
+                                onBlur={() =>
+                                  setHoveredTicker((current) => (current === company.ticker ? null : current))
+                                }
+                              >
+                                <div className="structure-segment-top">
+                                  <strong>{company.name}</strong>
+                                  <span>{regionLabels[company.country]}</span>
+                                </div>
+                                <div className="structure-metric-row">
+                                  <span>Ticker</span>
+                                  <strong>{company.ticker}</strong>
+                                </div>
+                                {hoveredTicker === company.ticker ? (
+                                  <div className="ticker-hover-badge ticker-hover-badge-inline">
+                                    {quotePreviewLoading[company.ticker]
+                                      ? "Loading price..."
+                                      : quotePreviewCache[company.ticker]
+                                        ? `${formatPreviewPrice(
+                                            quotePreviewCache[company.ticker]?.current_price,
+                                            quotePreviewCache[company.ticker]?.currency,
+                                          )} · ${
+                                            (quotePreviewCache[company.ticker]?.day_change_pct ?? 0) > 0 ? "+" : ""
+                                          }${(quotePreviewCache[company.ticker]?.day_change_pct ?? 0).toFixed(2)}%`
+                                        : "Price unavailable"}
+                                  </div>
+                                ) : null}
+                                <div className="structure-metric-row">
+                                  <span>Market Cap</span>
+                                  <strong>{formatMarketCapUsd(company.marketCap)}</strong>
                                     </div>
                                     <div className="structure-metric-row">
                                       <span>ROI (1Y)</span>
@@ -2392,99 +2325,7 @@ export default function ExplorePage() {
                   </section>
 
                   <aside className="news-panel">
-                    {chartMode === "heatmap" && activeStock ? (
-                      <>
-                        <div className="news-header">
-                          <div>
-                            <p className="eyebrow">{activeStock.ticker}</p>
-                            <h2>{activeStock.name}</h2>
-                            <p className="news-subtitle">
-                              Finviz-style frontend heatmap card for the selected region
-                            </p>
-                          </div>
-                          <div className="sentiment-pill">{activeStock.sector}</div>
-                        </div>
-
-                        <div className="news-metrics">
-                          <div className="metric-box">
-                            <span>Region</span>
-                            <strong>{activeStock.region}</strong>
-                          </div>
-                          <div className="metric-box">
-                            <span>Move</span>
-                            <strong>
-                              {activeStock.change > 0 ? "+" : ""}
-                              {activeStock.change.toFixed(2)}%
-                            </strong>
-                          </div>
-                        </div>
-
-                        <div className="article-list">
-                            {regionStocks.map((stock) => (
-                              <button
-                                key={stock.ticker}
-                                type="button"
-                                className={`article-card stock-list-card ${
-                                  stock.ticker === activeStock.ticker ? "stock-list-card-active" : ""
-                                }`}
-                                onClick={() => setSelectedTicker(stock.ticker)}
-                                onMouseEnter={() => {
-                                  setHoveredTicker(stock.ticker);
-                                  void loadQuotePreview(stock.ticker);
-                                }}
-                                onMouseLeave={() =>
-                                  setHoveredTicker((current) => (current === stock.ticker ? null : current))
-                                }
-                              >
-                                <div className="article-meta">
-                                  <span>{stock.sector}</span>
-                                  <div className="article-meta-actions">
-                                    {hoveredTicker === stock.ticker ? (
-                                      <span className="ticker-hover-inline">
-                                        {quotePreviewLoading[stock.ticker]
-                                          ? "Loading..."
-                                          : quotePreviewCache[stock.ticker]
-                                            ? formatPreviewPrice(
-                                                quotePreviewCache[stock.ticker]?.current_price,
-                                                quotePreviewCache[stock.ticker]?.currency,
-                                              )
-                                            : "N/A"}
-                                      </span>
-                                    ) : null}
-                                    <span
-                                      className="article-tone"
-                                      style={{
-                                        color:
-                                          stock.change > 0.5
-                                            ? "#86efac"
-                                            : stock.change < -0.5
-                                              ? "#fca5a5"
-                                              : "#fde68a",
-                                      }}
-                                    >
-                                      {stock.change > 0 ? "+" : ""}
-                                      {stock.change.toFixed(2)}%
-                                    </span>
-                                  </div>
-                                </div>
-                                <h3>
-                                  {stock.ticker} · {stock.name}
-                                </h3>
-                                <p>{stock.region} market heatmap block</p>
-                                <span
-                                  className="card-chart-link card-chart-link-inline"
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    openTickerInChart(stock.ticker);
-                                  }}
-                                >
-                                  Open chart
-                                </span>
-                              </button>
-                            ))}
-                        </div>
-                      </>
-                    ) : chartMode === "structure" && structureViewMode === "country" && activeStructureSegment ? (
+                    {chartMode === "structure" && structureViewMode === "country" && activeStructureSegment ? (
                       <>
                         <div className="news-header">
                           <div>
@@ -2644,52 +2485,6 @@ export default function ExplorePage() {
                           <p className="risk-summary-copy">
                             Cross-market view for {activeGlobalSegment.segment.toLowerCase()} across all tracked countries. Select up to three names to compare.
                           </p>
-                          <div className="comparison-grid">
-                            {activeGlobalSegment.companies.map((company) => (
-                              <button
-                                key={company.ticker}
-                                type="button"
-                                className={`comparison-card comparison-card-button ${
-                                  compareTickers.includes(company.ticker) ? "stock-list-card-active" : ""
-                                }`}
-                                onClick={() => toggleCompareTicker(company.ticker)}
-                                onMouseEnter={() => {
-                                  setHoveredTicker(company.ticker);
-                                  void loadQuotePreview(company.ticker);
-                                }}
-                                onMouseLeave={() =>
-                                  setHoveredTicker((current) => (current === company.ticker ? null : current))
-                                }
-                              >
-                                <span>{regionLabels[company.country]}</span>
-                                <strong>{company.name}</strong>
-                                <small>{company.ticker}</small>
-                                {hoveredTicker === company.ticker ? (
-                                  <small className="ticker-hover-inline">
-                                    {quotePreviewLoading[company.ticker]
-                                      ? "Loading..."
-                                      : quotePreviewCache[company.ticker]
-                                        ? formatPreviewPrice(
-                                            quotePreviewCache[company.ticker]?.current_price,
-                                            quotePreviewCache[company.ticker]?.currency,
-                                          )
-                                        : "N/A"}
-                                  </small>
-                                ) : null}
-                                <small>{formatMarketCapUsd(company.marketCap)}</small>
-                                <small>ROI {company.roi1Y}%</small>
-                                <span
-                                  className="card-chart-link card-chart-link-inline"
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    openTickerInChart(company.ticker);
-                                  }}
-                                >
-                                  Open chart
-                                </span>
-                              </button>
-                            ))}
-                          </div>
                           {comparisonCompanies.length > 0 ? (
                             <>
                               <div className="structure-panel-header structure-panel-subheader">
@@ -2698,7 +2493,17 @@ export default function ExplorePage() {
                               </div>
                               <div className="comparison-grid">
                                 {comparisonCompanies.map((company) => (
-                                  <div key={company.ticker} className="comparison-card">
+                                  <div
+                                    key={company.ticker}
+                                    className="comparison-card"
+                                    onMouseEnter={() => {
+                                      setHoveredTicker(company.ticker);
+                                      void loadQuotePreview(company.ticker);
+                                    }}
+                                    onMouseLeave={() =>
+                                      setHoveredTicker((current) => (current === company.ticker ? null : current))
+                                    }
+                                  >
                                     <span>
                                       {
                                         regionLabels[
@@ -2709,6 +2514,18 @@ export default function ExplorePage() {
                                     </span>
                                     <strong>{company.name}</strong>
                                     <small>{company.segment}</small>
+                                    {hoveredTicker === company.ticker ? (
+                                      <small className="ticker-hover-inline">
+                                        {quotePreviewLoading[company.ticker]
+                                          ? "Loading..."
+                                          : quotePreviewCache[company.ticker]
+                                            ? formatPreviewPrice(
+                                                quotePreviewCache[company.ticker]?.current_price,
+                                                quotePreviewCache[company.ticker]?.currency,
+                                              )
+                                            : "N/A"}
+                                      </small>
+                                    ) : null}
                                     <small>{formatMarketCapUsd(company.marketCap)}</small>
                                     <small>ROI {company.roi1Y}%</small>
                                   </div>
